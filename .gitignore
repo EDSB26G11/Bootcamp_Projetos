@@ -1,1 +1,26 @@
-vscode/.
+# Ambientes virtuais
+.venv/
+venv//
+env/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Variáveis de ambiente / segredos
+.env
+
+# Dados (opcional - descomentar se não quiserem versionar os dados)
+# data/
+# *.csv
