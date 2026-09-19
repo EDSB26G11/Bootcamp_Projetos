@@ -55,9 +55,9 @@ Bootcamp_Projetos/
 ## Equipa
 
 Grupo de 4 elementos — Enterprise Data Science Bootcamp 2026-27, NOVA IMS
-- [Nome 1]
-- [Nome 2]
-- [Nome 3]
-- [Nome 4]
+- Ana Carapinha
+- Filipa Filipe
+- Sandra Figueiredo
+- Tiago Marques
 
 *(preencher com os nomes e número de aluno de todos os elementos do grupo)*
