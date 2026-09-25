@@ -4,7 +4,7 @@ Projeto do grupo para o **Enterprise Data Science Bootcamp (EDSB 2026-27)** — 
 
 ## Visão geral do projeto
 
-O objetivo deste projeto é construir e avaliar um modelo de classificação binária para prever o diagnóstico de diabetes, com base num dataset clínico de pacientes (ex.: Pima Indians Diabetes Dataset ou equivalente).
+O objetivo deste projeto é construir e avaliar um modelo de classificação binária para prever o diagnóstico de diabetes, com base num dataset clínico de pacientes.
 
 - Dataset: a definir/adicionar (dados clínicos de pacientes para diagnóstico de diabetes)
 - Variável alvo: diagnóstico de diabetes (positivo/negativo)
