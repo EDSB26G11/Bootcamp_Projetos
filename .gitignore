@@ -24,3 +24,7 @@ __pycache__/
 # Dados (opcional - descomentar se não quiserem versionar os dados)
 # data/
 # *.csv
+
+
+# VS Code workspace files
+*.code-workspace
