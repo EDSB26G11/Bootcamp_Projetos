@@ -4,12 +4,11 @@ Projeto do grupo para o **Enterprise Data Science Bootcamp (EDSB 2026-27)** — 
 
 ## Visão geral do projeto
 
-O objetivo deste projeto é construir e avaliar um modelo de classificação binária para prever o incumprimento (default) de empréstimos, com base no dataset **Lending Club**.
+O objetivo deste projeto é construir e avaliar um modelo de classificação binária para prever o diagnóstico de diabetes, com base num dataset clínico de pacientes (ex.: Pima Indians Diabetes Dataset ou equivalente).
 
-- Dataset: `lending-club.csv`
-- Variável alvo: `loan_status` (1 = empréstimo pago, 0 = incumprimento) — dataset desequilibrado (~83% / 17%)
-- A divisão treino/teste já vem definida na coluna `split`
-- Tópicos relevantes do curso aplicados aqui: tratamento de dados desequilibrados, feature engineering, avaliação de modelos de classificação
+- Dataset: a definir/adicionar (dados clínicos de pacientes para diagnóstico de diabetes)
+- Variável alvo: diagnóstico de diabetes (positivo/negativo)
+- Tópicos relevantes do curso aplicados aqui: tratamento de dados em falta/desequilibrados, feature engineering, avaliação de modelos de classificação
 
 ## Pré-requisitos
 
@@ -20,18 +19,18 @@ O objetivo deste projeto é construir e avaliar um modelo de classificação bin
 
 1. Clonar o repositório:
    ```
-   Git clone https://github.com/Just1Student/Bootcamp_Projetos.git
-   Cd Bootcamp_Projetos
+git clone https://github.com/Just1Student/Bootcamp_Projetos.git
+   cd Bootcamp_Projetos
    ```
 2. Criar e ativar um ambiente virtual:
    ```
-   Python3 -m venv .venv
-   Source .venv/bin/activate.     # macOS/Linux
+   python3 -m venv .venv
+   source .venv/bin/activate.     # macOS/Linux
    .venv\Scripts\activate.        # Windows
    ```
 3. Instalar as dependências:
    ```
-   Pip install -r requirements.txt
+   pip install -r requirements.txt
    ```
 
 ## Como executar
