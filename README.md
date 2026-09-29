@@ -44,6 +44,7 @@ git clone https://github.com/Just1Student/Bootcamp_Projetos.git
 ```
 Bootcamp_Projetos/
 ├── data/raw.         # dados originais (read-only)
+├── data/processed.   # dados processados
 ├── src/.             # código-fonte do projeto
 ├── docs/.            # documentação e relatórios
 ├── requirements.txt. # dependências Python
