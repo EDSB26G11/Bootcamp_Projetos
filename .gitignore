@@ -21,9 +21,9 @@ __pycache__/
 # Variáveis de ambiente / segredos
 .env
 
-# Dados (opcional - descomentar se não quiserem versionar os dados)
-# data/
-# *.csv
+# Dados processados (gerados por src/data_preparation.py, não versionados;
+# cada pessoa gera o ficheiro localmente correndo o script)
+data/processed/*.csv
 
 
 # VS Code workspace files
