@@ -21,6 +21,10 @@ Os dados originais em `data/raw/` não podem ser usados diretamente:
 
 ## O que o script faz
 
+O código está dividido em módulos: `src/data/mappings.py` (T1.2: parser e
+descodificação dos IDs), `src/data/load.py` (T1.1: leitura e validação) e
+`src/data_preparation.py` (só orquestra: carregar → validar → descodificar → gravar).
+
 ### 1. `parse_ids_mapping()` — separar as 3 tabelas de lookup
 
 Lê o `IDS_mapping.csv` linha a linha e corta o ficheiro sempre que encontra
@@ -42,6 +46,18 @@ reconhecido como valor em falta (`NaN`) em qualquer coluna.
 As colunas `age`, `weight`, `payer_code`, `diag_1`, `diag_2`, `diag_3` são
 forçadas a tipo texto (`string`), para nunca serem interpretadas como número.
 
+Também usa `keep_default_na=False`, pelo mesmo motivo do `IDS_mapping.csv`:
+em `A1Cresult` e `max_glu_serum` a string `"None"` significa **teste não
+realizado** (84.748 e 96.420 linhas), não dado em falta. Sem esta opção o
+pandas convertia-a em `NaN`, misturando "não medido" com "em falta". Só o
+`?` é tratado como missing.
+
+`validate_diabetic_data()` confirma depois que o ficheiro lido bate com o
+guia do projeto: 101.766 linhas, 71.518 doentes (`patient_nbr` únicos),
+`readmitted` só com `<30`, `>30` e `NO`, e os missings esperados em `race`
+(2.273) e `weight` (98.569). Se algo não bater, levanta `ValueError` com a
+lista de todos os problemas. `describe_dtypes()` devolve o tipo de cada coluna.
+
 ### 3. `decode_ids()` — juntar as descrições dos códigos
 
 Para cada um dos 3 códigos (`admission_type_id`, `discharge_disposition_id`,
@@ -53,20 +69,33 @@ substituímos nada.
 ### 4. Guardar o resultado
 
 O ficheiro final é gravado em `data/processed/diabetic_data_clean.csv`
-— **101.766 linhas, 53 colunas** (48 originais + 5 colunas de descrição:
-as 3 `_desc` mais as bandas/diagnósticos já protegidos como texto).
+— **101.766 linhas, 53 colunas** (50 originais + 3 colunas `_desc`).
 
 ## Como correr
 
+A partir da raiz do repositório:
+
 ```bash
-source .venv/bin/activate
-python src/data_preparation.py
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+python -m src.data_preparation
 ```
 
 Deve terminar com:
-```
+
+```text
 Guardado: data/processed/diabetic_data_clean.csv (101766 linhas, 53 colunas)
 ```
+
+## Testes
+
+```bash
+python -m pytest tests/ -v
+```
+
+`tests/test_mappings.py` cobre o parser do `IDS_mapping.csv` (3 tabelas, `NULL`
+preservado como texto, erro se o formato mudar) e `tests/test_load.py` cobre a
+leitura (`?` → NaN, colunas de texto) e a validação, incluindo uma verificação
+contra o ficheiro real em `data/raw/`.
 
 ## Aviso para quem for reler `diabetic_data_clean.csv` mais tarde
 
