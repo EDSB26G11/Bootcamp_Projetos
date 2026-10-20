@@ -18,14 +18,14 @@ O objetivo deste projeto é construir e avaliar um modelo de classificação bin
 
 1. Clonar o repositório:
    ```
-git clone https://github.com/Just1Student/Bootcamp_Projetos.git
+   git clone https://github.com/Just1Student/Bootcamp_Projetos.git
    cd Bootcamp_Projetos
    ```
 2. Criar e ativar um ambiente virtual:
    ```
    python3 -m venv .venv
-   source .venv/bin/activate.     # macOS/Linux
-   .venv\Scripts\activate.        # Windows
+   source .venv/bin/activate     # macOS/Linux
+   .venv\Scripts\activate        # Windows
    ```
 3. Instalar as dependências:
    ```
@@ -34,20 +34,23 @@ git clone https://github.com/Just1Student/Bootcamp_Projetos.git
 
 ## Como executar
 
-- O código do projeto (pré-processamento, modelação, avaliação) deve ser colocado em `/src`.
-- Documentação e relatórios devem ser colocados em `/docs`.
-- Para correr um script: `python src/nome_do_script.py`
-- Para correr notebooks: `jupyter notebook` (ou abrir diretamente no VS Code)
+Todos os comandos correm a partir da raiz do repositório:
+
+- Preparação dos dados: `python -m src.data_preparation` (detalhes em [docs/data_preparation.md](docs/data_preparation.md))
+- Testes: `python -m pytest tests/ -v`
+- Notebooks: `jupyter notebook` (ou abrir diretamente no VS Code)
 
 ## Estrutura do repositório
 
 ```
 Bootcamp_Projetos/
-├── data/raw.         # dados originais (read-only)
-├── data/processed.   # dados processados
-├── src/.             # código-fonte do projeto
-├── docs/.            # documentação e relatórios
-├── requirements.txt. # dependências Python
+├── data/raw/          # dados originais (read-only)
+├── data/processed/    # dados processados (gerados localmente, não versionados)
+├── notebooks/         # análise exploratória
+├── src/               # código-fonte do projeto
+├── tests/             # testes (pytest)
+├── docs/              # documentação, decisões e figuras
+├── requirements.txt   # dependências Python
 ├── .gitignore
 └── README.md
 ```
