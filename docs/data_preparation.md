@@ -22,8 +22,9 @@ Os dados originais em `data/raw/` não podem ser usados diretamente:
 ## O que o script faz
 
 O código está dividido em módulos: `src/data/mappings.py` (T1.2: parser e
-descodificação dos IDs), `src/data/load.py` (T1.1: leitura e validação) e
-`src/data_preparation.py` (só orquestra: carregar → validar → descodificar → gravar).
+descodificação dos IDs), `src/data/load.py` (T1.1: leitura e validação),
+`src/data/population.py` (T1.4: população elegível) e `src/data_preparation.py`
+(só orquestra: carregar → validar → descodificar → excluir → gravar).
 
 ### 1. `parse_ids_mapping()` — separar as 3 tabelas de lookup
 
@@ -66,10 +67,17 @@ correspondente (ex: `admission_type_id=1` → `admission_type_id_desc="Emergency
 Os códigos originais são mantidos — só acrescentamos as descrições, não
 substituímos nada.
 
-### 4. Guardar o resultado
+### 4. `exclude_dead_hospice()` — definir a população elegível
+
+Remove os encontros com alta por óbito (`discharge_disposition_id` 11, 19,
+20, 21) ou para hospício (13, 14): 2.423 encontros. Um doente que morreu não
+pode ser readmitido, e no hospício o objetivo dos cuidados não é evitar o
+regresso ao hospital. Decisão D1 em [decisions.md](decisions.md).
+
+### 5. Guardar o resultado
 
 O ficheiro final é gravado em `data/processed/diabetic_data_clean.csv`
-— **101.766 linhas, 53 colunas** (50 originais + 3 colunas `_desc`).
+— **99.343 linhas, 69.990 doentes, 53 colunas** (50 originais + 3 colunas `_desc`).
 
 ## Como correr
 
@@ -83,7 +91,7 @@ python -m src.data_preparation
 Deve terminar com:
 
 ```text
-Guardado: data/processed/diabetic_data_clean.csv (101766 linhas, 53 colunas)
+Guardado: data/processed/diabetic_data_clean.csv (99343 linhas, 53 colunas)
 ```
 
 ## Testes
@@ -95,7 +103,9 @@ python -m pytest tests/ -v
 `tests/test_mappings.py` cobre o parser do `IDS_mapping.csv` (3 tabelas, `NULL`
 preservado como texto, erro se o formato mudar) e `tests/test_load.py` cobre a
 leitura (`?` → NaN, colunas de texto) e a validação, incluindo uma verificação
-contra o ficheiro real em `data/raw/`.
+contra o ficheiro real em `data/raw/`. `tests/test_population.py` confirma que
+só os códigos de óbito/hospício são removidos e que, no ficheiro real, ficam
+99.343 encontros e 69.990 doentes.
 
 ## Aviso para quem for reler `diabetic_data_clean.csv` mais tarde
 
