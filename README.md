@@ -39,6 +39,13 @@ Todos os comandos correm a partir da raiz do repositório:
 - Preparação dos dados: `python -m src.data_preparation` (detalhes em [docs/data_preparation.md](docs/data_preparation.md))
 - Testes: `python -m pytest tests/ -v`
 - Notebooks: `jupyter notebook` (ou abrir diretamente no VS Code)
+- Profiling automático (`notebooks/00_profiling.ipynb`): o `ydata-profiling` ainda exige pandas < 3, por isso usa um ambiente próprio:
+  ```
+  python -m venv .venv-profiling
+  .venv-profiling\Scripts\python -m pip install -r requirements-profiling.txt
+  .venv-profiling\Scripts\python -m ipykernel install --user --name bootcamp-profiling --display-name "Bootcamp (profiling)"
+  ```
+  Abrir o notebook com o kernel *Bootcamp (profiling)*. O relatório fica em `reports/profiling_raw.html` (não versionado).
 
 ## Estrutura do repositório
 

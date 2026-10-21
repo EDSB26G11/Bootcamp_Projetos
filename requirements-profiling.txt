@@ -1,0 +1,8 @@
+# Ambiente separado só para notebooks/00_profiling.ipynb.
+# O ydata-profiling (4.18) ainda exige pandas < 3, por isso não pode ser
+# instalado no .venv principal (pandas 3). Ver README, "Como executar".
+ydata-profiling
+# o ydata-profiling importa pkg_resources, removido nas versões recentes
+setuptools<81
+ipykernel
+ipywidgets
