@@ -16,6 +16,15 @@ REQUIRED_COLUMNS = [
     "admission_source_id",
     "readmitted",
 ]
+# Bandas/códigos que o pandas leria como número se não fossem forçados a texto.
+STRING_COLUMNS = {
+    "age": "string",
+    "weight": "string",
+    "diag_1": "string",
+    "diag_2": "string",
+    "diag_3": "string",
+    "payer_code": "string",
+}
 
 
 def load_diabetic_data(path: str) -> pd.DataFrame:
@@ -29,15 +38,18 @@ def load_diabetic_data(path: str) -> pd.DataFrame:
     significa "teste não realizado" (uma categoria válida), e o pandas
     converte "None" para NaN por omissão.
     """
-    dtype_as_string = {
-        "age": "string",
-        "weight": "string",
-        "diag_1": "string",
-        "diag_2": "string",
-        "diag_3": "string",
-        "payer_code": "string",
-    }
-    return pd.read_csv(path, na_values="?", keep_default_na=False, dtype=dtype_as_string)
+    return pd.read_csv(path, na_values="?", keep_default_na=False, dtype=STRING_COLUMNS)
+
+
+def load_clean_data(path: str) -> pd.DataFrame:
+    """Lê o diabetic_data_clean.csv gravado por src/data_preparation.py.
+
+    No ficheiro processado os valores em falta foram gravados como célula
+    vazia, por isso só "" passa a NaN. keep_default_na=False mantém "NULL"
+    (categoria das colunas _desc) e "None" (teste não realizado) como texto,
+    e STRING_COLUMNS evita que payer_code/diag_* voltem a ser lidas como número.
+    """
+    return pd.read_csv(path, na_values="", keep_default_na=False, dtype=STRING_COLUMNS)
 
 
 def validate_diabetic_data(df: pd.DataFrame) -> None:

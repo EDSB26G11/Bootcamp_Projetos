@@ -15,7 +15,7 @@ Resumo dos achados de `notebooks/01_eda.ipynb`. A EDA só quantifica; as decisõ
 2. **Fuga de informação pelo nº de encontros.** A taxa de <30 é 4,0% em doentes com 1 encontro e 23,2% com 3 ou mais, porque a própria readmissão cria um novo encontro no dataset. Essa contagem **não pode ser feature** (T1.6) e o split tem de ser agrupado por doente (T1.7).
 3. **`number_inpatient` é o preditor mais forte**: 8,4% sem internamentos prévios até 39,8% com 6 ou mais. `number_emergency` duplica a média nos positivos.
 4. **Destino da alta diferencia muito**: casa 9,3%, SNF 14,7%, reabilitação 27,7%; óbitos 0%.
-5. **"None" em `A1Cresult`/`max_glu_serum` é "não medido", não missing**, e tem sinal (A1C não medido 11,4% vs medido 9,9%). Manter como categoria.
+5. **"None" em `A1Cresult`/`max_glu_serum` é "não medido", não missing**, e tem sinal (A1C não medido 11,4% vs medido 9,8%). Manter como categoria.
 6. **`race` e `gender` quase não diferenciam** a taxa (≤1,7 p.p. nas categorias grandes).
 7. Contagens de visitas muito assimétricas (66–89% de zeros, máximos até 76).
 
@@ -28,7 +28,7 @@ Resumo dos achados de `notebooks/01_eda.ipynb`. A EDA só quantifica; as decisõ
 | 13 medicamentos com ≥99,3% `No` (`nateglinide`, `chlorpropamide`, `acetohexamide`, `tolbutamide`, `acarbose`, `miglitol`, `troglitazone`, `tolazamide`, `glyburide-metformin`, `glipizide-metformin`, `glimepiride-pioglitazone`, `metformin-rosiglitazone`, `metformin-pioglitazone`) | Quase sem variação | Descartar; agregar em nº de medicamentos alterados | T1.8, T1.9 |
 | `encounter_id`, `patient_nbr` | Identificadores | Não são features (`patient_nbr` só para o split) | T1.6, T1.7 |
 | `payer_code` | 39,6% missing, sinal fraco (V=0,03) | Candidata; testar no modelo | T1.9, T2 |
-| `medical_specialty` | 49,1% missing, 73 níveis | Manter com `?` como categoria e níveis raros agrupados | T1.9 |
+| `medical_specialty` | 49,1% missing, 73 níveis (72 especialidades + `?`) | Manter com `?` como categoria e níveis raros agrupados | T1.9 |
 | `max_glu_serum` | 94,7% não medido; sinal fraco (V=0,01) | Candidata fraca | T1.9 |
 | `*_id` vs `*_id_desc` | Mesma informação | Manter só uma | T1.9 |
 

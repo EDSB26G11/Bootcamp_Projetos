@@ -7,11 +7,13 @@ from src.data.load import (
     EXPECTED_PATIENTS,
     EXPECTED_ROWS,
     describe_dtypes,
+    load_clean_data,
     load_diabetic_data,
     validate_diabetic_data,
 )
 
 RAW_DATA = "data/raw/diabetic_data.csv"
+CLEAN_DATA = "data/processed/diabetic_data_clean.csv"
 
 
 def test_load_converts_question_mark_and_keeps_text(tmp_path):
@@ -36,6 +38,24 @@ def test_none_is_kept_as_not_measured(tmp_path):
     assert df["A1Cresult"].tolist() == ["None", ">8"]
     assert df["max_glu_serum"].iloc[0] == "None"
     assert df["race"].isna().tolist() == [True, False]
+
+
+def test_clean_data_round_trip_keeps_categories_and_types(tmp_path):
+    raw = tmp_path / "d.csv"
+    raw.write_text(
+        "race,A1Cresult,payer_code,diag_1,admission_type_id_desc\n"
+        "?,None,MC,250.83,NULL\n"
+        "Caucasian,>8,?,V57,Emergency\n"
+    )
+    clean = tmp_path / "clean.csv"
+    load_diabetic_data(str(raw)).to_csv(clean, index=False)
+    df = load_clean_data(str(clean))
+    assert df["race"].isna().tolist() == [True, False]
+    assert df["payer_code"].isna().tolist() == [False, True]
+    assert df["A1Cresult"].iloc[0] == "None"
+    assert df["admission_type_id_desc"].iloc[0] == "NULL"
+    assert pd.api.types.is_string_dtype(df["payer_code"])
+    assert df["diag_1"].iloc[0] == "250.83"
 
 
 def test_validate_reports_missing_columns():
@@ -68,3 +88,13 @@ def test_real_file_passes_validation():
     assert len(df) == EXPECTED_ROWS
     assert df["patient_nbr"].nunique() == EXPECTED_PATIENTS
     assert len(describe_dtypes(df)) == df.shape[1]
+
+
+@pytest.mark.skipif(not os.path.exists(CLEAN_DATA), reason="data/processed não gerado")
+def test_real_clean_file_keeps_categories_and_types():
+    df = load_clean_data(CLEAN_DATA)
+    assert (df["A1Cresult"] == "None").any()
+    assert (df["admission_type_id_desc"] == "NULL").any()
+    assert df["readmitted"].notna().all()
+    for col in ("payer_code", "diag_1", "diag_2", "diag_3"):
+        assert pd.api.types.is_string_dtype(df[col])

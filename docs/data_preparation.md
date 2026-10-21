@@ -111,12 +111,20 @@ só os códigos de óbito/hospício são removidos e que, no ficheiro real, fica
 
 Se alguém abrir este ficheiro processado com `pd.read_csv()` sem mais
 nada, o pandas volta a converter a categoria `"NULL"` (nas colunas
-`_desc`) em `NaN`, perdendo a distinção entre "categoria NULL" e "sem
-mapeamento". Para reler corretamente:
+`_desc`) e o `"None"` (teste não realizado) em `NaN`, perdendo a distinção
+entre categoria e valor em falta. Para reler corretamente, usar sempre:
 
 ```python
-pd.read_csv("data/processed/diabetic_data_clean.csv", keep_default_na=False, na_values="")
+from src.data.load import load_clean_data
+
+df = load_clean_data("data/processed/diabetic_data_clean.csv")
 ```
+
+Só a célula vazia passa a `NaN`, e `age`, `weight`, `payer_code` e
+`diag_1/2/3` são forçadas a texto, como na leitura dos dados originais. No
+ficheiro completo o pandas já as lê como texto (os códigos `V`/`E` obrigam a
+isso), mas numa leitura parcial (`nrows`, *chunks*) os códigos de diagnóstico
+podem passar a número (`'276'` → `276.0`), o que estraga o agrupamento ICD-9.
 
 ## Verificações feitas (para dar confiança nos números)
 
