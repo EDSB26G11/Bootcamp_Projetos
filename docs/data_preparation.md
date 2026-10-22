@@ -67,17 +67,17 @@ correspondente (ex: `admission_type_id=1` → `admission_type_id_desc="Emergency
 Os códigos originais são mantidos — só acrescentamos as descrições, não
 substituímos nada.
 
-### 4. `exclude_dead_hospice()` — definir a população elegível
+### 4. `exclude_deaths()` — definir a população elegível
 
 Remove os encontros com alta por óbito (`discharge_disposition_id` 11, 19,
-20, 21) ou para hospício (13, 14): 2.423 encontros. Um doente que morreu não
-pode ser readmitido, e no hospício o objetivo dos cuidados não é evitar o
-regresso ao hospital. Decisão D1 em [decisions.md](decisions.md).
+20, 21): 1.652 encontros. Um doente que morreu não pode ser readmitido. Os
+encontros com alta para hospício (13, 14) ficam, porque o doente pode voltar
+ao hospital. Decisão D1 em [decisions.md](decisions.md).
 
 ### 5. Guardar o resultado
 
 O ficheiro final é gravado em `data/processed/diabetic_data_clean.csv`
-— **99.343 linhas, 69.990 doentes, 53 colunas** (50 originais + 3 colunas `_desc`).
+— **100.114 linhas, 70.439 doentes, 53 colunas** (50 originais + 3 colunas `_desc`).
 
 ## Como correr
 
@@ -91,7 +91,7 @@ python -m src.data_preparation
 Deve terminar com:
 
 ```text
-Guardado: data/processed/diabetic_data_clean.csv (99343 linhas, 53 colunas)
+Guardado: data/processed/diabetic_data_clean.csv (100114 linhas, 53 colunas)
 ```
 
 ## Testes
@@ -104,19 +104,27 @@ python -m pytest tests/ -v
 preservado como texto, erro se o formato mudar) e `tests/test_load.py` cobre a
 leitura (`?` → NaN, colunas de texto) e a validação, incluindo uma verificação
 contra o ficheiro real em `data/raw/`. `tests/test_population.py` confirma que
-só os códigos de óbito/hospício são removidos e que, no ficheiro real, ficam
-99.343 encontros e 69.990 doentes.
+só os códigos de óbito são removidos (o hospício fica) e que, no ficheiro real,
+ficam 100.114 encontros e 70.439 doentes.
 
 ## Aviso para quem for reler `diabetic_data_clean.csv` mais tarde
 
 Se alguém abrir este ficheiro processado com `pd.read_csv()` sem mais
 nada, o pandas volta a converter a categoria `"NULL"` (nas colunas
-`_desc`) em `NaN`, perdendo a distinção entre "categoria NULL" e "sem
-mapeamento". Para reler corretamente:
+`_desc`) e o `"None"` (teste não realizado) em `NaN`, perdendo a distinção
+entre categoria e valor em falta. Para reler corretamente, usar sempre:
 
 ```python
-pd.read_csv("data/processed/diabetic_data_clean.csv", keep_default_na=False, na_values="")
+from src.data.load import load_clean_data
+
+df = load_clean_data("data/processed/diabetic_data_clean.csv")
 ```
+
+Só a célula vazia passa a `NaN`, e `age`, `weight`, `payer_code` e
+`diag_1/2/3` são forçadas a texto, como na leitura dos dados originais. No
+ficheiro completo o pandas já as lê como texto (os códigos `V`/`E` obrigam a
+isso), mas numa leitura parcial (`nrows`, *chunks*) os códigos de diagnóstico
+podem passar a número (`'276'` → `276.0`), o que estraga o agrupamento ICD-9.
 
 ## Verificações feitas (para dar confiança nos números)
 

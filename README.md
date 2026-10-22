@@ -18,7 +18,7 @@ O objetivo deste projeto é construir e avaliar um modelo de classificação bin
 
 1. Clonar o repositório:
    ```
-   git clone https://github.com/Just1Student/Bootcamp_Projetos.git
+   git clone https://github.com/EDSB26G11/Bootcamp_Projetos.git
    cd Bootcamp_Projetos
    ```
 2. Criar e ativar um ambiente virtual:

@@ -7,7 +7,7 @@ onde foi tomada.
 
 | # | Tarefa | Decisão | Evidência | Estado |
 |---|---|---|---|---|
-| D1 | T1.4 | Excluir os encontros com alta por óbito (`discharge_disposition_id` 11, 19, 20, 21) ou para hospício (13, 14). Implementado em `src/data/population.py` | 2 423 encontros (2,4%); 0 readmissões nos óbitos, 43 nos hospícios, onde o objetivo dos cuidados não é evitar a readmissão. Ficam 99 343 encontros, 69 990 doentes, 11,39% de positivos (notebook §5) | Aceite |
+| D1 | T1.4 | Excluir só os encontros com alta por óbito (`discharge_disposition_id` 11, 19, 20, 21). Os hospícios (13, 14) ficam na população. Implementado em `src/data/population.py` | 1 652 encontros (1,6%) com 0 readmissões: um doente que morreu não pode ser readmitido. Os hospícios (771 encontros, 43 readmissões, 5,6%) podem voltar ao hospital, por isso ficam. Ficam 100 114 encontros, 70 439 doentes, 11,34% de positivos. *Revista em 22/10: a versão anterior excluía também o hospício (99 343 encontros)* | Aceite |
 
 Estados: `Proposta` · `Aceite` · `Rejeitada`.
 
@@ -43,7 +43,7 @@ Estados:
 |---|---|---|---|---|---|---|
 | P9 | Target = `readmitted == "<30"`; `>30` e `NO` juntos como negativos | notebook célula 1 | Objetivo do projeto (readmissão em menos de 30 dias) | Toda a EDA de taxas muda | A decidir | T1.5 |
 | P10 | Códigos 11, 19, 20, 21 = óbito; 13, 14 = hospício | notebook §5 (`DEAD_HOSPICE`) | Descrições do `IDS_mapping.csv`; 0 readmissões nos óbitos | — | Confirmado (dados) | T1.4 |
-| P11 | A EDA usa todos os 101 766 encontros, **incluindo** os 2 423 de óbito/hospício | notebook §5–§10 | A exclusão só é simulada na §5, o `df` não é filtrado | Associações do destino da alta inflacionadas (V=0,125 em parte pelos óbitos) | Decidido: excluir (D1). A EDA mantém a população completa; os passos seguintes partem de `data/processed/` já sem estes encontros | T1.4 |
+| P11 | A EDA usa todos os 101 766 encontros, **incluindo** os 1 652 de óbito e os 771 de hospício | notebook §5–§10 | A exclusão só é simulada na §5, o `df` não é filtrado | Associações do destino da alta inflacionadas (V=0,125 em parte pelos óbitos) | Decidido: excluir só os óbitos (D1). A EDA mantém a população completa; os passos seguintes partem de `data/processed/` já sem os óbitos | T1.4 |
 | P12 | `gender` Unknown/Invalid (3 casos) não é uma categoria com significado | notebook §1 | n=3 | — | A decidir | T3.5 |
 
 ### Tempo e disponibilidade na alta

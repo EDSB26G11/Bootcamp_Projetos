@@ -12,7 +12,7 @@ variável e deve ser atualizada sempre que uma decisão muda.
 - `Y*` — proposto pela EDA, **ainda por decidir** na tarefa indicada.
 - `N` — não.
 - **Excluída**: não entra como feature no modelo. A exclusão de *linhas*
-  (óbitos/hospício, D1) não aparece aqui.
+  (óbitos, D1) não aparece aqui.
 - **Ajuste**: precisa de tratamento antes de ser usada (tipo, missing, recodificação, transformação).
 - **Base p/ outras**: serve para construir outra variável, o target ou a população.
 
@@ -39,7 +39,7 @@ variável e deve ser atualizada sempre que uma decisão muda.
 |---|---|---|---|---|---|---|
 | `admission_type_id` | Tipo de admissão (código; ex.: Emergency, Urgent, Elective) | Categórica (código) | N | Y | Y | Descodificada em `_desc` (implementado). "NULL"/"Not Available"/"Not Mapped" = desconhecido (P4, pendente). Manter só código **ou** descrição (T1.9) |
 | `admission_type_id_desc` | Descrição de `admission_type_id` (criada no pipeline) | Categórica | N | Y* | N | Mesma informação que o código; ver acima |
-| `discharge_disposition_id` | Destino da alta (código; ex.: casa, SNF, óbito) | Categórica (código) | N | Y | Y | Define a população: óbito/hospício excluídos (D1, implementado). Proposto também como feature, por ser decidido no momento da alta (T1.6, pendente). NULL/Not Mapped (P4) |
+| `discharge_disposition_id` | Destino da alta (código; ex.: casa, SNF, óbito) | Categórica (código) | N | Y | Y | Define a população: óbitos excluídos, hospício mantido (D1, implementado). Proposto também como feature, por ser decidido no momento da alta (T1.6, pendente). NULL/Not Mapped (P4) |
 | `discharge_disposition_id_desc` | Descrição de `discharge_disposition_id` (criada no pipeline) | Categórica | N | Y* | N | Ver acima |
 | `admission_source_id` | Origem da admissão (código; ex.: urgência, referenciação médica, transferência) | Categórica (código) | N | Y | Y | Descodificada em `_desc`. NULL/Not Available/Not Mapped (P4). Manter código **ou** descrição (T1.9) |
 | `admission_source_id_desc` | Descrição de `admission_source_id` (criada no pipeline) | Categórica | N | Y* | N | Ver acima |
