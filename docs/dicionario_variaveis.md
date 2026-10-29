@@ -1,7 +1,8 @@
 # Dicionário de variáveis
 
 Todas as colunas de `data/processed/diabetic_data_clean.csv`: as 50 originais
-de `diabetic_data.csv` mais as 3 descrições `*_desc` criadas por `decode_ids()`.
+de `diabetic_data.csv`, as 3 descrições `*_desc` criadas por `decode_ids()` e
+o `target` (D6).
 Os significados seguem a documentação UCI / Strack et al. (2014). As decisões
 são registadas em [decisions.md](decisions.md); esta tabela é o resumo por
 variável e deve ser atualizada sempre que uma decisão muda.
@@ -12,7 +13,7 @@ variável e deve ser atualizada sempre que uma decisão muda.
 - `Y*` — proposto pela EDA, **ainda por decidir** na tarefa indicada.
 - `N` — não.
 - **Excluída**: não entra como feature no modelo. A exclusão de *linhas*
-  (óbitos/hospício, D1) não aparece aqui.
+  (óbitos, D1; encontros impossíveis, D2; `gender` inválido, D7) não aparece aqui.
 - **Ajuste**: precisa de tratamento antes de ser usada (tipo, missing, recodificação, transformação).
 - **Base p/ outras**: serve para construir outra variável, o target ou a população.
 
@@ -20,16 +21,17 @@ variável e deve ser atualizada sempre que uma decisão muda.
 
 | Variável | Significado | Tipo | Excluída | Ajuste | Base p/ outras | Detalhe |
 |---|---|---|---|---|---|---|
-| `encounter_id` | Identificador único do internamento | ID | Y* | N | N | Identificador, não é feature (T1.6) |
-| `patient_nbr` | Identificador único do doente | ID | Y* | N | Y | Não é feature (T1.6); agrupa o split por doente (T1.7). Proibido agregar por doente sobre o dataset (P18) |
-| `readmitted` | Readmissão: `<30` dias, `>30` dias ou `NO` | Categórica | Y | N | Y* | Nunca é feature (enunciado T1.6); origina o target binário `<30` vs resto (T1.5, P9) |
+| `encounter_id` | Identificador único do internamento | ID | Y | N | N | Identificador, não é feature (D11). A ordem não pode ser usada como tempo (D12) |
+| `patient_nbr` | Identificador único do doente | ID | Y | N | Y | Não é feature (D11); agrupa o split por doente (T1.7). Proibido agregar por doente sobre o dataset (D12) |
+| `readmitted` | Readmissão: `<30` dias, `>30` dias ou `NO` | Categórica | Y | N | Y* | Nunca é feature (D11); origina o target binário `<30` vs resto (D6, implementado) |
+| `target` | 1 se `readmitted == "<30"`, 0 caso contrário (criada no pipeline) | Binária | Y | N | N | É o target (D6, implementado); 11,34% de positivos |
 
 ## Demografia
 
 | Variável | Significado | Tipo | Excluída | Ajuste | Base p/ outras | Detalhe |
 |---|---|---|---|---|---|---|
-| `race` | Raça (Caucasian, AfricanAmerican, Hispanic, Asian, Other) | Categórica | N | Y* | N | 2,2% missing (`?`): tratar como categoria (T1.9). Uso no modelo vs só fairness em T3.5 |
-| `gender` | Género (Female, Male, Unknown/Invalid) | Categórica | N | Y* | N | 3 casos Unknown/Invalid (P12, pendente). Uso no modelo vs só fairness em T3.5 |
+| `race` | Raça (Caucasian, AfricanAmerican, Hispanic, Asian, Other) | Categórica | N | Y* | N | Harmonizada por doente (D3, implementado). 2,2% missing (`?`): tratar como categoria (T1.9). Uso no modelo vs só fairness em T3.5 |
+| `gender` | Género (Female, Male, Unknown/Invalid) | Categórica | N | Y* | N | 3 casos Unknown/Invalid excluídos da população (D7, implementado). Uso no modelo vs só fairness em T3.5 |
 | `age` | Idade em bandas de 10 anos (`[0-10)` … `[90-100)`) | Ordinal (texto) | N | Y | Y* | Lida como texto (implementado); converter em ordinal (T1.8) |
 | `weight` | Peso em bandas de libras | Ordinal (texto) | Y* | Y | N | 96,9% missing, sem sinal: descartar (T1.9) |
 
@@ -37,11 +39,11 @@ variável e deve ser atualizada sempre que uma decisão muda.
 
 | Variável | Significado | Tipo | Excluída | Ajuste | Base p/ outras | Detalhe |
 |---|---|---|---|---|---|---|
-| `admission_type_id` | Tipo de admissão (código; ex.: Emergency, Urgent, Elective) | Categórica (código) | N | Y | Y | Descodificada em `_desc` (implementado). "NULL"/"Not Available"/"Not Mapped" = desconhecido (P4, pendente). Manter só código **ou** descrição (T1.9) |
+| `admission_type_id` | Tipo de admissão (código; ex.: Emergency, Urgent, Elective) | Categórica (código) | N | Y | Y | Descodificada em `_desc` (implementado). "NULL"/"Not Available"/"Not Mapped" agrupados em `Desconhecido` na `_desc` (D5, implementado). Manter só código **ou** descrição (T1.9) |
 | `admission_type_id_desc` | Descrição de `admission_type_id` (criada no pipeline) | Categórica | N | Y* | N | Mesma informação que o código; ver acima |
-| `discharge_disposition_id` | Destino da alta (código; ex.: casa, SNF, óbito) | Categórica (código) | N | Y | Y | Define a população: óbito/hospício excluídos (D1, implementado). Proposto também como feature, por ser decidido no momento da alta (T1.6, pendente). NULL/Not Mapped (P4) |
+| `discharge_disposition_id` | Destino da alta (código; ex.: casa, SNF, óbito) | Categórica (código) | N | Y | Y | Define a população: óbitos excluídos, hospício mantido (D1, implementado). Também é feature, por ser decidido no momento da alta (D10). NULL/Not Mapped → `Desconhecido` (D5) |
 | `discharge_disposition_id_desc` | Descrição de `discharge_disposition_id` (criada no pipeline) | Categórica | N | Y* | N | Ver acima |
-| `admission_source_id` | Origem da admissão (código; ex.: urgência, referenciação médica, transferência) | Categórica (código) | N | Y | Y | Descodificada em `_desc`. NULL/Not Available/Not Mapped (P4). Manter código **ou** descrição (T1.9) |
+| `admission_source_id` | Origem da admissão (código; ex.: urgência, referenciação médica, transferência) | Categórica (código) | N | Y | Y | Descodificada em `_desc`. NULL/Not Available/Not Mapped → `Desconhecido` (D5). Manter código **ou** descrição (T1.9) |
 | `admission_source_id_desc` | Descrição de `admission_source_id` (criada no pipeline) | Categórica | N | Y* | N | Ver acima |
 | `time_in_hospital` | Dias de internamento (1–14, critério de inclusão) | Numérica | N | N | N | — |
 | `payer_code` | Entidade pagadora (ex.: Medicare, seguro, pagamento próprio) | Categórica | Y* | Y | N | Lida como texto; 39,6% missing, sinal fraco (V=0,03). Candidata a sair; testar no modelo (T1.9, T2) |
@@ -108,12 +110,13 @@ classe. Classes e contexto em [anexo_medicamentos.md](anexo_medicamentos.md).
 
 | Nova variável | Construída a partir de | Estado |
 |---|---|---|
-| `target` (`<30` = 1, resto = 0) | `readmitted` | Y* (T1.5, P9) |
+| `target` (`<30` = 1, resto = 0) | `readmitted` | Y (D6, implementado) |
 | Faixa etária ordinal | `age` | Y* (T1.8) |
 | Grupo ICD-9 de cada diagnóstico | `diag_1`, `diag_2`, `diag_3` | Y* (T1.8) |
 | Flag de diabetes com complicações (250.x) | `diag_1–3` | Y* (T1.8) |
 | Nº de medicamentos prescritos | 23 colunas de medicamentos | Y* (T1.8) |
 | Nº de medicamentos com dose alterada (e/ou `Up` e `Down` separados) | 23 colunas de medicamentos | Y* (T1.8) |
 | Indicadores por classe terapêutica | 23 colunas de medicamentos | Y* (T1.8), opcional |
-| Categoria "Desconhecido" nos IDs | `admission_type_id`, `admission_source_id`, `discharge_disposition_id` | Y* (T1.9, P4) |
+| Categoria "Desconhecido" nos IDs | `admission_type_id`, `admission_source_id`, `discharge_disposition_id` | Y (D5, implementado nas `_desc`) |
+| Indicador "registo de admissão incompleto" | os 3 IDs | Y* (D5: só se o modelo mostrar que ajuda, T2) |
 | Contagens transformadas (log1p / truncadas) | `number_outpatient/emergency/inpatient` | Y* (T1.8) |

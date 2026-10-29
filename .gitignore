@@ -1,5 +1,6 @@
 # Ambientes virtuais
 .venv/
+.venv-profiling/
 venv/
 env/
 
@@ -25,8 +26,12 @@ __pycache__/
 # cada pessoa gera o ficheiro localmente correndo o script)
 data/processed/*.csv
 
+# Relatórios HTML do ydata-profiling (gerados por notebooks/00_profiling.ipynb)
+reports/
+
 
 # VS Code workspace files
 *.code-workspace
 # Notas internas locais (não partilhar)
 docs/status_apoio_ia.md
+docs/contributions.md

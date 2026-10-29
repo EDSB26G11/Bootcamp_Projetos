@@ -23,8 +23,11 @@ Os dados originais em `data/raw/` não podem ser usados diretamente:
 
 O código está dividido em módulos: `src/data/mappings.py` (T1.2: parser e
 descodificação dos IDs), `src/data/load.py` (T1.1: leitura e validação),
-`src/data/population.py` (T1.4: população elegível) e `src/data_preparation.py`
-(só orquestra: carregar → validar → descodificar → excluir → gravar).
+`src/data/cleaning.py` (D3, D4: `race` por doente e códigos ICD-9),
+`src/data/population.py` (T1.4/T1.5: população elegível e target) e
+`src/data_preparation.py` (só orquestra: carregar → validar → excluir
+impossíveis → limpar → descodificar → agrupar desconhecidos → excluir óbitos
+e `gender` inválido → target → gravar).
 
 ### 1. `parse_ids_mapping()` — separar as 3 tabelas de lookup
 
@@ -59,7 +62,19 @@ guia do projeto: 101.766 linhas, 71.518 doentes (`patient_nbr` únicos),
 (2.273) e `weight` (98.569). Se algo não bater, levanta `ValueError` com a
 lista de todos os problemas. `describe_dtypes()` devolve o tipo de cada coluna.
 
-### 3. `decode_ids()` — juntar as descrições dos códigos
+### 3. Encontros impossíveis e limpeza de valores
+
+- `exclude_impossible()` remove os 59 encontros (54 doentes) que violam
+  uma regra de severidade `erro` de `src/data/quality.py`: recém-nascido
+  com idade ≥ 10, doente com 2 `gender`, idade a descer ou a saltar 2+
+  bandas, encontro depois de um óbito. Corre **antes** de retirar os óbitos,
+  porque a regra C5 precisa deles. Decisão D2.
+- `harmonize_race()` dá aos 123 doentes com mais de uma `race` a moda dos
+  seus encontros; em empate, a do encontro mais recente. Decisão D3.
+- `pad_icd9()` repõe os zeros à esquerda nos códigos ICD-9 numéricos
+  (`8` → `008`, `41.1` → `041.1`): 5.732 códigos. Decisão D4.
+
+### 4. `decode_ids()` — juntar as descrições dos códigos
 
 Para cada um dos 3 códigos (`admission_type_id`, `discharge_disposition_id`,
 `admission_source_id`), cria uma coluna nova `<coluna>_desc` com a descrição
@@ -67,17 +82,31 @@ correspondente (ex: `admission_type_id=1` → `admission_type_id_desc="Emergency
 Os códigos originais são mantidos — só acrescentamos as descrições, não
 substituímos nada.
 
-### 4. `exclude_dead_hospice()` — definir a população elegível
+Depois, `group_unknown_ids()` põe `Desconhecido` na descrição dos códigos
+que querem dizer "desconhecido" (NULL, Not Available, Not Mapped,
+Unknown/Invalid): `admission_type_id` 5, 6, 8; `discharge_disposition_id`
+18, 25, 26; `admission_source_id` 9, 15, 17, 20, 21. O código original fica
+na coluna `_id`. Decisão D5.
 
-Remove os encontros com alta por óbito (`discharge_disposition_id` 11, 19,
-20, 21) ou para hospício (13, 14): 2.423 encontros. Um doente que morreu não
-pode ser readmitido, e no hospício o objetivo dos cuidados não é evitar o
-regresso ao hospital. Decisão D1 em [decisions.md](decisions.md).
+### 5. `define_population()` — definir a população elegível
 
-### 5. Guardar o resultado
+- `exclude_deaths()` remove os encontros com alta por óbito
+  (`discharge_disposition_id` 11, 19, 20, 21): 1.652 encontros. Um doente
+  que morreu não pode ser readmitido. As altas para hospício (13, 14; 771
+  encontros, 43 readmissões) ficam na população. Decisão D1.
+- `exclude_invalid_gender()` remove os 3 encontros com `gender`
+  `Unknown/Invalid`. Decisão D7.
+
+### 6. `add_target()` — criar o target
+
+Acrescenta `target` = 1 se `readmitted == "<30"`, 0 se `>30` ou `NO`
+(11,34% de positivos). `readmitted` fica no ficheiro, mas nunca é feature.
+Decisão D6. Todas as decisões estão em [decisions.md](decisions.md).
+
+### 7. Guardar o resultado
 
 O ficheiro final é gravado em `data/processed/diabetic_data_clean.csv`
-— **99.343 linhas, 69.990 doentes, 53 colunas** (50 originais + 3 colunas `_desc`).
+— **100.052 linhas, 70.412 doentes, 54 colunas** (50 originais + 3 colunas `_desc` + `target`).
 
 ## Como correr
 
@@ -91,7 +120,7 @@ python -m src.data_preparation
 Deve terminar com:
 
 ```text
-Guardado: data/processed/diabetic_data_clean.csv (99343 linhas, 53 colunas)
+Guardado: data/processed/diabetic_data_clean.csv (100052 linhas, 54 colunas)
 ```
 
 ## Testes
@@ -101,27 +130,32 @@ python -m pytest tests/ -v
 ```
 
 `tests/test_mappings.py` cobre o parser do `IDS_mapping.csv` (3 tabelas, `NULL`
-preservado como texto, erro se o formato mudar) e `tests/test_load.py` cobre a
+preservado como texto, erro se o formato mudar, agrupamento dos desconhecidos) e `tests/test_load.py` cobre a
 leitura (`?` → NaN, colunas de texto) e a validação, incluindo uma verificação
 contra o ficheiro real em `data/raw/`. `tests/test_population.py` confirma que
-só os códigos de óbito/hospício são removidos e que, no ficheiro real, ficam
-99.343 encontros e 69.990 doentes.
+só os óbitos e o `gender` inválido são removidos (o hospício fica), que o
+target é `<30` contra o resto e que, no ficheiro real, há 59 encontros
+impossíveis e ficam 100.052 encontros e 70.412 doentes.
+`tests/test_cleaning.py` cobre a moda da `race` (com empate) e os zeros nos
+códigos ICD-9.
 
 ## Aviso para quem for reler `diabetic_data_clean.csv` mais tarde
 
 Se alguém abrir este ficheiro processado com `pd.read_csv()` sem mais
-nada, o pandas volta a converter a categoria `"NULL"` (nas colunas
-`_desc`) em `NaN`, perdendo a distinção entre "categoria NULL" e "sem
-mapeamento". Para reler corretamente:
+nada, o pandas converte a string `"None"` de `A1Cresult` e `max_glu_serum`
+(teste não realizado) em `NaN`, e lê `diag_1–3` como número, perdendo os
+zeros à esquerda repostos em D4 (`008` → `8`). As descrições `"NULL"` já não
+aparecem (passaram a `Desconhecido`, D5). Para reler corretamente:
 
 ```python
-pd.read_csv("data/processed/diabetic_data_clean.csv", keep_default_na=False, na_values="")
+text = {c: "string" for c in ["age", "weight", "payer_code", "diag_1", "diag_2", "diag_3"]}
+pd.read_csv("data/processed/diabetic_data_clean.csv", keep_default_na=False, na_values="", dtype=text)
 ```
 
 ## Verificações feitas (para dar confiança nos números)
 
 - `race`: 2.273 valores em falta ✔️ (bate certo com o guia do projeto)
 - `weight`: 98.569 valores em falta (96,86%) ✔️
-- Nenhuma categoria de `admission_type_id`/`discharge_disposition_id`/
-  `admission_source_id` ficou por mapear além dos códigos "NULL" (que agora
-  aparecem corretamente como texto, não como valor em falta)
+- Nenhum código de `admission_type_id`/`discharge_disposition_id`/
+  `admission_source_id` ficou sem descrição; os códigos desconhecidos têm
+  `Desconhecido` (D5)

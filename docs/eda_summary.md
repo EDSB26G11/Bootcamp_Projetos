@@ -7,17 +7,19 @@ Resumo dos achados de `notebooks/01_eda.ipynb`. A EDA só quantifica; as decisõ
 - 101 766 encontros, 71 518 doentes, 50 colunas originais.
 - Target (`readmitted == "<30"`): **11,16%** de positivos. NO 53,9% · >30 34,9%.
 - 23,5% dos doentes têm mais de 1 encontro e somam 46,2% dos encontros.
-- 2 423 encontros com alta por óbito ou para hospício (43 positivos).
+- 1 652 encontros com alta por óbito (0 positivos), excluídos da população (D1). Os 771 com alta para hospício (43 positivos) mantêm-se.
+- 3 encontros com `gender` Unknown/Invalid, também excluídos (D7). Com os 59 encontros impossíveis (D2), a população final fica em 100 052 encontros, 70 412 doentes, 11,34% de positivos.
 
 ## Achados principais
 
 1. **Desequilíbrio forte.** Prever sempre "não" dá 88,8% de accuracy. Usar PR-AUC e recall@k (T3.2).
-2. **Fuga de informação pelo nº de encontros.** A taxa de <30 é 4,0% em doentes com 1 encontro e 23,2% com 3 ou mais, porque a própria readmissão cria um novo encontro no dataset. Essa contagem **não pode ser feature** (T1.6) e o split tem de ser agrupado por doente (T1.7).
+2. **Fuga de informação pelo nº de encontros.** A taxa de <30 é 4,0% em doentes com 1 encontro e 23,2% com 3 ou mais, porque a própria readmissão cria um novo encontro no dataset. Essa contagem **não pode ser feature** (D12) e o split tem de ser agrupado por doente (T1.7).
 3. **`number_inpatient` é o preditor mais forte**: 8,4% sem internamentos prévios até 39,8% com 6 ou mais. `number_emergency` duplica a média nos positivos.
 4. **Destino da alta diferencia muito**: casa 9,3%, SNF 14,7%, reabilitação 27,7%; óbitos 0%.
 5. **"None" em `A1Cresult`/`max_glu_serum` é "não medido", não missing**, e tem sinal (A1C não medido 11,4% vs medido 9,9%). Manter como categoria.
 6. **`race` e `gender` quase não diferenciam** a taxa (≤1,7 p.p. nas categorias grandes).
 7. Contagens de visitas muito assimétricas (66–89% de zeros, máximos até 76).
+8. **Consistência (§1.1, `src/data/quality.py`).** 21 regras em 3 camadas (dentro do encontro, formato, entre encontros do doente). **59 encontros (0,06%) são impossíveis**: 19 com admissão/origem/alta de recém-nascido em doentes com 20–100 anos, 14 depois de um óbito, 18 com a idade a descer, 7 de doentes com 2 `gender`. Excluídos (D2). Também: 123 doentes com 2 `race`, harmonizados (D3); 5 732 códigos ICD-9 sem zeros à esquerda, corrigidos (D4); 490 `NO` com encontro seguinte (P28). Domínios, duplicados e regras sexo × diagnóstico estão limpos.
 
 ## Variáveis candidatas a descartar
 

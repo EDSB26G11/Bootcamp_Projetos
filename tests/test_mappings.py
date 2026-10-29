@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import pytest
 
-from src.data.mappings import decode_ids, parse_ids_mapping_lines, parse_ids_mapping
+from src.data.mappings import decode_ids, group_unknown_ids, parse_ids_mapping_lines, parse_ids_mapping
 
 RAW_MAPPING = "data/raw/IDS_mapping.csv"
 
@@ -61,3 +61,16 @@ def test_real_file():
     assert len(mappings) == 3
     desc = mappings["admission_type_id"].set_index("admission_type_id")["description"]
     assert desc[6] == "NULL"
+
+
+def test_group_unknown_ids_only_changes_desc():
+    df = pd.DataFrame({
+        "admission_type_id": [1, 6], "admission_type_id_desc": ["Emergency", "NULL"],
+        "discharge_disposition_id": [18, 1], "discharge_disposition_id_desc": ["NULL", "Discharged to home"],
+        "admission_source_id": [20, 7], "admission_source_id_desc": ["Not Mapped", "Emergency Room"],
+    })
+    out = group_unknown_ids(df)
+    assert out["admission_type_id_desc"].tolist() == ["Emergency", "Desconhecido"]
+    assert out["discharge_disposition_id_desc"].tolist() == ["Desconhecido", "Discharged to home"]
+    assert out["admission_source_id_desc"].tolist() == ["Desconhecido", "Emergency Room"]
+    assert out["admission_type_id"].tolist() == [1, 6]
