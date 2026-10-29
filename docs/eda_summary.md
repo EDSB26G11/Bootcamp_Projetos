@@ -18,6 +18,7 @@ Resumo dos achados de `notebooks/01_eda.ipynb`. A EDA só quantifica; as decisõ
 5. **"None" em `A1Cresult`/`max_glu_serum` é "não medido", não missing**, e tem sinal (A1C não medido 11,4% vs medido 9,9%). Manter como categoria.
 6. **`race` e `gender` quase não diferenciam** a taxa (≤1,7 p.p. nas categorias grandes).
 7. Contagens de visitas muito assimétricas (66–89% de zeros, máximos até 76).
+8. **Consistência (§1.1, `src/data/quality.py`).** 21 regras em 3 camadas (dentro do encontro, formato, entre encontros do doente). **59 encontros (0,06%) são impossíveis**: 19 com admissão/origem/alta de recém-nascido em doentes com 20–100 anos, 14 depois de um óbito, 18 com a idade a descer, 7 de doentes com 2 `gender`. Propõe-se excluí-los (D2). Também: 123 doentes com 2 `race` (D3), 5 732 códigos ICD-9 sem zeros à esquerda (D4), 490 `NO` com encontro seguinte (P28). Domínios, duplicados e regras sexo × diagnóstico estão limpos.
 
 ## Variáveis candidatas a descartar
 
