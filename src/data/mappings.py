@@ -12,6 +12,16 @@ EXPECTED_MAPPINGS = (
     "admission_source_id",
 )
 
+# Códigos que, na prática, querem dizer "desconhecido" (NULL, Not Available,
+# Not Mapped, Unknown/Invalid). Juntam-se numa só categoria por coluna (D5).
+# 26 (destino) e 15, 21 (origem) não aparecem nos dados, mas têm o mesmo sentido.
+UNKNOWN_IDS = {
+    "admission_type_id": (5, 6, 8),
+    "discharge_disposition_id": (18, 25, 26),
+    "admission_source_id": (9, 15, 17, 20, 21),
+}
+UNKNOWN_LABEL = "Desconhecido"
+
 
 def parse_ids_mapping(path: str) -> dict[str, pd.DataFrame]:
     """Divide o IDS_mapping.csv nas 3 tabelas de lookup que contém.
@@ -66,4 +76,15 @@ def decode_ids(df: pd.DataFrame, mappings: dict[str, pd.DataFrame]) -> pd.DataFr
         description_col = f"{id_col}_desc"
         lookup = mapping_df.set_index(id_col).iloc[:, 0]
         df[description_col] = df[id_col].map(lookup)
+    return df
+
+
+def group_unknown_ids(df: pd.DataFrame) -> pd.DataFrame:
+    """Põe "Desconhecido" na coluna _desc dos códigos desconhecidos (D5).
+
+    Os códigos originais não mudam: só a descrição fica agrupada.
+    """
+    df = df.copy()
+    for id_col, codes in UNKNOWN_IDS.items():
+        df.loc[df[id_col].isin(codes), f"{id_col}_desc"] = UNKNOWN_LABEL
     return df

@@ -34,3 +34,4 @@ reports/
 *.code-workspace
 # Notas internas locais (não partilhar)
 docs/status_apoio_ia.md
+docs/contributions.md

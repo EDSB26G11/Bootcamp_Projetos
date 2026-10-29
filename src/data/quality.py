@@ -21,14 +21,13 @@ from typing import Callable
 
 import pandas as pd
 
-from src.data.population import EXCLUDED_DISCHARGE_IDS
+from src.data.population import DEATH_DISCHARGE_IDS
 
 DIAG_COLS = ["diag_1", "diag_2", "diag_3"]
 
 NEWBORN_ADMISSION_TYPE = 4
 BIRTH_ADMISSION_SOURCES = (11, 12, 13, 14, 23, 24)  # partos e nascimentos
 NEONATE_DISCHARGE = 10
-DEATH_DISCHARGE_IDS = tuple(i for i in EXCLUDED_DISCHARGE_IDS if i not in (13, 14))
 OBSTETRIC_SPECIALTY = r"Obstetric|Obsteric|Gynecolog|Perinatology"
 
 # O dataset cobre 10 anos (1999-2008). Subir 2 bandas de idade exige pelo
@@ -275,3 +274,12 @@ def check_masks(df: pd.DataFrame, mappings: dict[str, pd.DataFrame] | None = Non
         c.id: c.func(df, mappings) if c.func is out_of_domain else c.func(df)
         for c in CHECKS
     })
+
+
+def impossible_encounters(df: pd.DataFrame, mappings: dict[str, pd.DataFrame] | None = None) -> pd.Series:
+    """Encontros que violam pelo menos uma regra de severidade "erro" (D2).
+
+    Tem de correr sobre os dados completos: C5 precisa dos encontros de óbito.
+    """
+    errors = [c.id for c in CHECKS if c.severidade == "erro"]
+    return check_masks(df, mappings)[errors].any(axis=1)
