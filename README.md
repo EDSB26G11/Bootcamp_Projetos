@@ -70,4 +70,3 @@ Grupo de 4 elementos — Enterprise Data Science Bootcamp 2026-27, NOVA IMS
 - Sandra Figueiredo
 - Tiago Marques
 
-*(preencher com os nomes e número de aluno de todos os elementos do grupo)*
