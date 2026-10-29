@@ -53,6 +53,7 @@ Todos os comandos correm a partir da raiz do repositório:
 Bootcamp_Projetos/
 ├── data/raw/          # dados originais (read-only)
 ├── data/processed/    # dados processados (gerados localmente, não versionados)
+├── data/splits/       # split treino/teste e folds por doente (versionado, D13)
 ├── notebooks/         # análise exploratória
 ├── src/               # código-fonte do projeto
 ├── tests/             # testes (pytest)

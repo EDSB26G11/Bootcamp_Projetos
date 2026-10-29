@@ -7,6 +7,10 @@ Código-fonte do projeto: scripts e/ou notebooks de pré-processamento, feature 
 - `data/cleaning.py` — `race` harmonizada por doente (D3) e zeros à esquerda nos códigos ICD-9 (D4)
 - `data/population.py` — população elegível (sem encontros impossíveis, D2; sem óbitos, D1; sem `gender` inválido, D7; hospício mantém-se) e target `<30` (D6)
 - `data/quality.py` — regras de consistência usadas na EDA (§1.1); só identificam (a exclusão de D2 está em `population.py`)
-- `data_preparation.py` — orquestra os passos acima e grava `data/processed/diabetic_data_clean.csv`
+- `data/split.py` — split por doente: teste de 20% e 5 folds de CV no treino (D13)
+- `data_preparation.py` — orquestra os passos acima e grava `data/processed/diabetic_data_clean.csv` e `data/splits/splits.csv`
+
+- `features/build.py` — features da T1.8 (D14) e colunas do modelo (T1.9, D15)
+- `pipeline.py` — `load_model_data()`, `build_preprocessor()` e `cv_splits()` para a modelação (T1.10, D16)
 
 Correr a partir da raiz do repositório: `python -m src.data_preparation`
