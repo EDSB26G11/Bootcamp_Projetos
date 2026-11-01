@@ -46,9 +46,9 @@ mesma forma, e a escolha justificada do candidato a modelo v1.
 | Tarefa | O quê | Output | Papel |
 |---|---|---|---|
 | T2.1 Baselines | Regra simples e regressão logística. São a fasquia: tudo o que vier depois tem de as bater | Tabela baseline | R2 |
-| T2.2 Modelos candidatos | Um gradient boosting (HistGradientBoosting, LightGBM ou XGBoost) e uma random forest, com tuning modesto | `notebooks/03_models.ipynb` | R2 |
+| T2.2 Modelos candidatos | Um gradient boosting (HistGradientBoosting, LightGBM ou XGBoost) e uma random forest, com tuning modesto | `notebooks/03_baselines_models.ipynb` | R2 |
 | T2.3 Hugging Face Hub | Ver se há modelos ou datasets tabulares úteis; ler model cards e licenças; decidir e justificar | Nota em `decisions.md` | R3 |
-| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `docs/experiments.md` | R2 |
+| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `reports/experiments.csv` (via `src/models/train.py`, `run_cv`) | R2 |
 
 ## Regras
 
@@ -103,7 +103,7 @@ notas). Isto tem de aparecer no relatório e no deck.
 - **Tuning em excesso.** Com cerca de 9 000 positivos no treino, um grid
   grande ajusta-se ao ruído dos folds. Chegam poucas combinações por modelo.
 - **Esquecer o registo.** Cada corrida que entra na comparação vai para
-  `docs/experiments.md`, incluindo as que correram mal.
+  `reports/experiments.csv` (via `src/models/train.py`, `run_cv`), incluindo as que correram mal.
 
 ## Decisões que vão surgir
 
