@@ -24,10 +24,11 @@ Os dados originais em `data/raw/` não podem ser usados diretamente:
 O código está dividido em módulos: `src/data/mappings.py` (T1.2: parser e
 descodificação dos IDs), `src/data/load.py` (T1.1: leitura e validação),
 `src/data/cleaning.py` (D3, D4: `race` por doente e códigos ICD-9),
-`src/data/population.py` (T1.4/T1.5: população elegível e target) e
+`src/data/population.py` (T1.4/T1.5: população elegível e target),
+`src/data/split.py` (T1.7: split por doente) e
 `src/data_preparation.py` (só orquestra: carregar → validar → excluir
 impossíveis → limpar → descodificar → agrupar desconhecidos → excluir óbitos
-e `gender` inválido → target → gravar).
+e `gender` inválido → target → gravar → split por doente).
 
 ### 1. `parse_ids_mapping()` — separar as 3 tabelas de lookup
 
@@ -108,6 +109,18 @@ Decisão D6. Todas as decisões estão em [decisions.md](decisions.md).
 O ficheiro final é gravado em `data/processed/diabetic_data_clean.csv`
 — **100.052 linhas, 70.412 doentes, 54 colunas** (50 originais + 3 colunas `_desc` + `target`).
 
+### 8. `assign_splits()` — split por doente
+
+Grava `data/splits/splits.csv` com uma linha por encontro: `encounter_id`,
+`patient_nbr`, `split` (`train`/`test`) e `fold` (0–4 no treino, -1 no
+teste). Usa `StratifiedGroupKFold` por `patient_nbr`, estratificado pelo
+`target`, com seed 42: 20% dos doentes para teste e 5 folds de CV no treino.
+Nenhum doente aparece em duas partes e todas ficam com 11,34% de positivos.
+O teste só se usa uma vez, na avaliação final (T3.6). Decisão D13.
+
+O ficheiro é versionado no git, para toda a equipa usar exatamente o mesmo
+split mesmo que a versão do scikit-learn mude.
+
 ## Como correr
 
 A partir da raiz do repositório:
@@ -121,6 +134,7 @@ Deve terminar com:
 
 ```text
 Guardado: data/processed/diabetic_data_clean.csv (100052 linhas, 54 colunas)
+Guardado: data/splits/splits.csv ({'train': 80041, 'test': 20011})
 ```
 
 ## Testes
@@ -137,7 +151,9 @@ só os óbitos e o `gender` inválido são removidos (o hospício fica), que o
 target é `<30` contra o resto e que, no ficheiro real, há 59 encontros
 impossíveis e ficam 100.052 encontros e 70.412 doentes.
 `tests/test_cleaning.py` cobre a moda da `race` (com empate) e os zeros nos
-códigos ICD-9.
+códigos ICD-9. `tests/test_split.py` confirma que nenhum doente aparece em
+duas partes, que o split é reprodutível e que, nos dados reais, o teste tem
+20% dos encontros e todas as partes a mesma taxa de positivos.
 
 ## Aviso para quem for reler `diabetic_data_clean.csv` mais tarde
 

@@ -26,8 +26,13 @@ __pycache__/
 # cada pessoa gera o ficheiro localmente correndo o script)
 data/processed/*.csv
 
-# Relatórios HTML do ydata-profiling (gerados por notebooks/00_profiling.ipynb)
-reports/
+# Relatórios HTML do ydata-profiling (gerados por notebooks/00_profiling.ipynb).
+# reports/experiments.csv e reports/figures/ são versionados.
+reports/*.html
+
+# Modelos treinados (gerados por src/models/train.py, save_model)
+models/*
+!models/.gitkeep
 
 
 # VS Code workspace files

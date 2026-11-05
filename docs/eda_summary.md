@@ -23,6 +23,8 @@ Resumo dos achados de `notebooks/01_eda.ipynb`. A EDA só quantifica; as decisõ
 
 ## Variáveis candidatas a descartar
 
+Decididas em D15 (T1.9): saem `weight`, `examide`, `citoglipton`, os 13 medicamentos quase constantes, `change`, `diabetesMed` e os `*_id` (ficam as `_desc`). `payer_code` e `max_glu_serum` ficam para testar no modelo.
+
 | Variável | Evidência | Proposta | Tarefa |
 |---|---|---|---|
 | `weight` | 96,9% missing; taxa igual com e sem valor (11,2% vs 11,2%) | Descartar | T1.9 |
