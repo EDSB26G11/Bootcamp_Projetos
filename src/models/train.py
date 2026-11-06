@@ -114,6 +114,7 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
         "threshold_k10": threshold_for_capacity(oof, 0.10),
         "threshold_k20": threshold_for_capacity(oof, 0.20),
         "oof_quantiles": np.quantile(oof, np.linspace(0, 1, 1001)).tolist(),
+        "n_train": int(len(oof)),
         "versions": {"python": platform.python_version(), "scikit-learn": sklearn.__version__,
                      "skops": skops.__version__},
         "seed": SEED,
