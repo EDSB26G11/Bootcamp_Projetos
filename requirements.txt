@@ -2,11 +2,10 @@ pandas
 scipy
 numpy
 scikit-learn
-imbalanced-learn
 matplotlib
 seaborn
 jupyter
 notebook
 pytest
-joblib
 gradio
+skops==0.16.0

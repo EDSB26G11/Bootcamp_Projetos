@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.models.baselines import ColumnRanker, RandomRanker, baseline_models
-from src.models.evaluate import metrics_by_group, precision_at_k, recall_at_k, score_metrics, summarize
-from src.models.threshold import capacity_table, threshold_for_capacity
-from src.models.train import log_experiment
-from src.pipeline import PROCESSED, SPLITS
+from src.models.baselines import ColumnRanker, baseline_models, candidate_models, simple_models
+from src.models.evaluate import cv_predict, metrics_by_group, precision_at_k, recall_at_k, score_metrics, summarize
+from src.models.threshold import (capacity_table, confusion_at_k, gains_curve, rank_baseline_at_k,
+                                  threshold_for_capacity)
+from src.models.train import log_experiment, run_cv
+from src.pipeline import PROCESSED, SPLITS, ModelData
 
 HAS_DATA = os.path.exists(PROCESSED) and os.path.exists(SPLITS)
 
@@ -40,17 +41,53 @@ def test_rankers():
     assert rule.tolist() == [0, 1, 1]
     rank = ColumnRanker().fit(X, None).predict_proba(X)[:, 1]
     assert np.all(np.diff(rank) > 0)
-    p = RandomRanker().fit(X, None).predict_proba(X)
-    assert np.allclose(p.sum(axis=1), 1)
+    p = baseline_models()["random"].fit(X, [0, 1, 0]).predict_proba(X)[:, 1]
+    assert np.allclose(p, 1 / 3)  # DummyClassifier(prior): a taxa de positivos
     assert set(baseline_models()) == {"random", "rule_inpatient_ge_1", "rank_inpatient", "logreg"}
+    assert all(hasattr(m, "predict_proba") for m in {**simple_models(), **candidate_models()}.values())
+    assert set(candidate_models()) == {"random_forest", "hist_gradient_boosting"}
 
 
 def test_capacity_threshold():
-    s = np.linspace(0, 1, 1001)
+    rng = np.random.RandomState(0)
+    s = rng.rand(5000)
+    y = (rng.rand(5000) < s * 0.25).astype(int)
+    tab = capacity_table(y, s)
+    for k in (0.10, 0.20):
+        assert tab.loc[k, "pct_sinalizados"] == pytest.approx(k, abs=0.005)
+        assert tab.loc[k, "lift"] == pytest.approx(tab.loc[k, "precision"] / y.mean())
+        assert tab.loc[k, "readm_encontradas_por_1000_altas"] == pytest.approx(
+            1000 * tab.loc[k, "pct_sinalizados"] * tab.loc[k, "precision"])
+    assert "tier" not in " ".join(tab.columns)
     assert (s >= threshold_for_capacity(s, 0.1)).mean() == pytest.approx(0.1, abs=0.002)
-    y = (s > 0.9).astype(int)
-    tab = capacity_table(y, s, capacities=(0.1,))
-    assert tab.loc[0.1, "recall"] == pytest.approx(1, abs=0.01)
+
+
+def test_rank_baseline_ties():
+    rng = np.random.RandomState(1)
+    y = (rng.rand(2000) < 0.11).astype(int)
+    out = rank_baseline_at_k(y, np.zeros(2000), 0.10)  # tudo empatado: ordem ao acaso
+    assert out["recall_mean"] == pytest.approx(0.10, abs=0.02)
+    assert out["recall_std"] > 0
+
+
+def test_confusion_at_k_sums():
+    rng = np.random.RandomState(2)
+    s = rng.rand(1000)
+    y = (rng.rand(1000) < s * 0.3).astype(int)
+    c = confusion_at_k(y, s, 0.20)
+    n_flag = capacity_table(y, s, capacities=(0.20,)).loc[0.20, "n_sinalizados"]
+    assert c["tp"] + c["fp"] == n_flag
+    assert c["tp"] + c["fn"] == y.sum()
+    assert c["matrix"].sum() == 1000
+
+
+def test_gains_curve_ends_at_100():
+    rng = np.random.RandomState(3)
+    s = rng.rand(500)
+    y = (s > 0.8).astype(int)
+    g = gains_curve(y, s)
+    assert g["pct_readm_apanhadas"].iloc[-1] == pytest.approx(100)
+    assert g["pct_readm_apanhadas"].is_monotonic_increasing
 
 
 def test_metrics_by_group_uses_global_top_k():
@@ -67,6 +104,31 @@ def test_log_experiment_appends(tmp_path):
     log = log_experiment({"model": "b", "pr_auc_mean": 0.3}, path)
     assert log["model"].tolist() == ["a", "b"]
     assert len(pd.read_csv(path)) == 2
+
+
+def test_run_cv_logs_current_and_history(tmp_path):
+    rng = np.random.RandomState(0)
+    X = pd.DataFrame({"number_inpatient": rng.randint(0, 4, 200)})
+    y = pd.Series((X["number_inpatient"] + rng.rand(200) > 2.5).astype(int))
+    data = ModelData(X, y, pd.Series(range(200)), pd.Series(np.arange(200) % 5), X, y)
+    cur, hist = tmp_path / "experiments.csv", tmp_path / "experiments_v1.csv"
+    log_experiment({"model": "antiga"}, hist)
+    folds, oof = run_cv("regra", ColumnRanker(threshold=1), data, path=cur, history=hist, return_oof=True)
+    log = pd.read_csv(cur)
+    assert log["dataset"].tolist() == ["train", "validation"]  # formato da W6
+    assert {"date", "model", "dataset", "pr_auc", "log_loss", "brier", "note"} <= set(log.columns)
+    assert pd.read_csv(hist)["model"].tolist() == ["antiga", "regra", "regra"]
+    assert len(folds) == 5 and not oof.isna().any()
+
+
+def test_oof_covers_every_training_row_once():
+    rng = np.random.RandomState(4)
+    X = pd.DataFrame({"number_inpatient": rng.randint(0, 4, 100)})
+    y = pd.Series((rng.rand(100) < 0.3).astype(int))
+    data = ModelData(X, y, pd.Series(range(100)), pd.Series(np.arange(100) % 5), X, y)
+    train_folds, val_folds, oof = cv_predict(ColumnRanker(), data)
+    assert len(oof) == 100 and not oof.isna().any()
+    assert list(train_folds.index) == list(val_folds.index) == [0, 1, 2, 3, 4]
 
 
 @pytest.mark.skipif(not HAS_DATA, reason="data/processed ou data/splits não gerados")

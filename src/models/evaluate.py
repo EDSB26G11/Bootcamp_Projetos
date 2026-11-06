@@ -3,13 +3,16 @@ Métricas e avaliação em CV (T2.1–T2.4, regras 4 e 5 de docs/modelacao_base.
 
 A métrica principal é a PR-AUC. O recall@k responde à pergunta do negócio:
 que fração das readmissões se apanha se a equipa de follow-up só chegar aos
-k% de altas com maior risco.
+k% de altas com maior risco. Tudo o que vem depois da escolha do modelo
+(threshold, importância, fairness) usa as previsões out-of-fold (OOF) do
+treino; o teste só se abre na avaliação final.
 """
 
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import average_precision_score, brier_score_loss, log_loss, roc_auc_score
 
 from src.data.split import SEED
 from src.pipeline import ModelData, cv_splits
@@ -41,12 +44,16 @@ def precision_at_k(y, scores, k: float) -> float:
 
 
 def score_metrics(y, scores) -> dict:
-    """PR-AUC, ROC-AUC e recall/precisão nos top 10% e 20%."""
+    """PR-AUC, ROC-AUC, recall/precisão nos top 10% e 20%, log loss e Brier."""
     out = {"pr_auc": average_precision_score(y, scores), "roc_auc": roc_auc_score(y, scores)}
     for k in TOP_K:
         pct = int(k * 100)
         out[f"recall_at_{pct}"] = recall_at_k(y, scores, k)
         out[f"precision_at_{pct}"] = precision_at_k(y, scores, k)
+    # Log loss e Brier só fazem sentido para probabilidades, não para rankings.
+    is_prob = np.min(scores) >= 0 and np.max(scores) <= 1
+    out["log_loss"] = log_loss(y, np.clip(scores, 1e-15, 1 - 1e-15), labels=[0, 1]) if is_prob else np.nan
+    out["brier"] = brier_score_loss(y, scores) if is_prob else np.nan
     return out
 
 
@@ -55,22 +62,51 @@ def predict_scores(model, X) -> np.ndarray:
     return model.predict_proba(X)[:, 1]
 
 
-def cv_evaluate(model, data: ModelData) -> pd.DataFrame:
-    """Uma linha por fold de D13 com as métricas de score_metrics.
+def cv_predict(model, data: ModelData):
+    """Ajusta o modelo em cada fold de D13.
 
-    O modelo é clonado e ajustado em cada fold; o teste não é usado.
+    Devolve as métricas por fold no treino do fold e na validação, e as
+    previsões OOF: o score de cada encontro de treino quando estava na validação.
     """
-    rows = []
+    train_rows, val_rows = [], []
+    oof = pd.Series(np.nan, index=data.y_train.index, name="oof_score")
     for k, (tr, va) in enumerate(cv_splits(data)):
         m = clone(model).fit(data.X_train.iloc[tr], data.y_train.iloc[tr])
+        train_rows.append({"fold": k, **score_metrics(data.y_train.iloc[tr],
+                                                      predict_scores(m, data.X_train.iloc[tr]))})
         scores = predict_scores(m, data.X_train.iloc[va])
-        rows.append({"fold": k, **score_metrics(data.y_train.iloc[va], scores)})
-    return pd.DataFrame(rows).set_index("fold")
+        oof.iloc[va] = scores
+        val_rows.append({"fold": k, **score_metrics(data.y_train.iloc[va], scores)})
+    return pd.DataFrame(train_rows).set_index("fold"), pd.DataFrame(val_rows).set_index("fold"), oof
+
+
+def cv_evaluate(model, data: ModelData) -> pd.DataFrame:
+    """Uma linha por fold de D13 com as métricas de validação; o teste não é usado."""
+    return cv_predict(model, data)[1]
 
 
 def summarize(folds: pd.DataFrame) -> pd.Series:
     """Média e desvio dos folds: pr_auc_mean, pr_auc_std, ..."""
     return pd.Series({f"{c}_{s}": getattr(folds[c], s)() for c in folds.columns for s in ("mean", "std")})
+
+
+def oof_permutation_importance(model, data: ModelData, n_repeats: int = 5) -> pd.DataFrame:
+    """Importância por permutação de cada uma das 34 features, medida na
+    validação de cada fold (as mesmas previsões das OOF) com a PR-AUC.
+
+    importance = descida média da PR-AUC quando a coluna é baralhada;
+    std = desvio dessa média entre os 5 folds.
+    """
+    per_fold = []
+    for tr, va in cv_splits(data):
+        m = clone(model).fit(data.X_train.iloc[tr], data.y_train.iloc[tr])
+        r = permutation_importance(m, data.X_train.iloc[va], data.y_train.iloc[va],
+                                   scoring="average_precision", n_repeats=n_repeats,
+                                   random_state=SEED)
+        per_fold.append(pd.Series(r.importances_mean, index=data.X_train.columns))
+    imp = pd.concat(per_fold, axis=1)
+    return (pd.DataFrame({"importance": imp.mean(axis=1), "std": imp.std(axis=1)})
+            .sort_values("importance", ascending=False))
 
 
 def metrics_by_group(y, scores, groups, k: float = 0.10, min_n: int = 100) -> pd.DataFrame:

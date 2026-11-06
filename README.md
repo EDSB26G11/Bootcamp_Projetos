@@ -45,7 +45,7 @@ Os notebooks em `notebooks/` são as bancadas de trabalho, um por fase:
 | [02_preprocessing_check](notebooks/02_preprocessing_check.ipynb) | Preparação | mostra e valida o que o `src/` faz |
 | [03_baselines_models](notebooks/03_baselines_models.ipynb) | Modelação | baselines e modelos candidatos |
 | [04_tuning_selection](notebooks/04_tuning_selection.ipynb) | Modelação | tuning, seleção do modelo e threshold |
-| [05_interpretation_fairness](notebooks/05_interpretation_fairness.ipynb) | Avaliação | SHAP, métricas por idade/raça/sexo |
+| [05_interpretation_fairness](notebooks/05_interpretation_fairness.ipynb) | Avaliação | importância por permutação, métricas por idade/raça/sexo |
 | [06_deployment](notebooks/06_deployment.ipynb) | Deployment | refit, gravar modelo, testar a app |
 
 Documentação em `docs/`:
@@ -108,8 +108,8 @@ Bootcamp_Projetos/
 ├── notebooks/         # bancadas de trabalho: 1 notebook = 1 fase
 ├── Projeto_Final.ipynb  # relatório final, corre de ponta a ponta
 ├── src/               # código-fonte (data/, features/, pipeline.py, models/, app.py)
-├── models/            # modelo final .joblib (gerado localmente, não versionado)
-├── reports/           # experiments.csv (1 linha por corrida) e figures/ de modelação
+├── models/            # modelo final em models/v1/: model.skops, config.json e model card (gerado localmente, não versionado)
+├── reports/           # experiments.csv (comparação atual), experiments_v1.csv (histórico de todas as corridas) e figures/
 ├── tests/             # testes (pytest)
 ├── docs/              # documentação, decisões e figuras da EDA
 ├── requirements.txt   # dependências Python

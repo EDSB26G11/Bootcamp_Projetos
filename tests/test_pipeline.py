@@ -29,6 +29,15 @@ def test_preprocessor_handles_unseen_and_rare_categories():
     assert not np.isnan(out).any()
 
 
+def test_preprocessor_ablation_options():
+    train = _frame(300, ["Common"] * 300)
+    train["flag"] = [0, 1] * 150
+    pre = build_preprocessor(exclude=["payer_code", "age_band"], extra_binary=["flag"]).fit(train)
+    names = list(pre.get_feature_names_out())
+    assert "flag" in names and "age_band" not in names
+    assert not any(n.startswith("payer_code") for n in names)
+
+
 @pytest.mark.skipif(not HAS_DATA, reason="data/processed ou data/splits não gerados")
 def test_all_processed_columns_are_accounted_for():
     cols = set(read_processed().columns)

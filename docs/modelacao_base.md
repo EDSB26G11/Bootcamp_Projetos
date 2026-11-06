@@ -48,7 +48,7 @@ mesma forma, e a escolha justificada do candidato a modelo v1.
 | T2.1 Baselines | Regra simples e regressão logística. São a fasquia: tudo o que vier depois tem de as bater | Tabela baseline | R2 |
 | T2.2 Modelos candidatos | Um gradient boosting (HistGradientBoosting, LightGBM ou XGBoost) e uma random forest, com tuning modesto | `notebooks/03_baselines_models.ipynb` | R2 |
 | T2.3 Hugging Face Hub | Ver se há modelos ou datasets tabulares úteis; ler model cards e licenças; decidir e justificar | Nota em `decisions.md` | R3 |
-| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `reports/experiments.csv` (via `src/models/train.py`, `run_cv`) | R2 |
+| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `reports/experiments.csv` (comparação atual) e `reports/experiments_v1.csv` (histórico), via `run_cv` em `src/models/train.py` | R2 |
 
 ## Regras
 
@@ -59,7 +59,7 @@ mesma forma, e a escolha justificada do candidato a modelo v1.
    `StratifiedKFold`: os folds de D13 garantem que nenhum doente está no
    treino e na validação ao mesmo tempo.
 3. **O pré-processamento vai dentro do pipeline.** Nada de `fit` no
-   conjunto todo antes da CV, nem SMOTE fora do fold (isso é na T3.1).
+   conjunto todo antes da CV, nem reamostragem fora do fold.
 4. **Métrica principal: PR-AUC** (`average_precision`). Reportar também
    ROC-AUC e recall@10% / recall@20% (a fração de readmissões apanhada se a
    equipa de follow-up só chegar a 10% ou 20% das altas). A accuracy não serve:

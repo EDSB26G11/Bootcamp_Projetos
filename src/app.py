@@ -1,15 +1,19 @@
 """
 Demo Gradio do modelo final (fase IV, deployment).
 
-Lê o bundle gravado por src.models.train.save_model. O utilizador preenche as
-features com mais peso; as restantes ficam com a mediana/moda do treino.
+Lê a pasta gravada por src.models.train.save_model (model.skops + config.json).
+O utilizador preenche as features com mais peso; as restantes ficam com a
+mediana/moda do treino. A saída é texto: em que percentil de risco a alta
+está face às previsões OOF do treino e a ação para cada capacidade. Não mostra
+probabilidades, gauges nem semáforos.
 Correr a partir da raiz do repositório:
     python -m src.app
 """
 
+import numpy as np
 import pandas as pd
 
-from src.models.train import MODEL_PATH, load_model
+from src.models.train import MODEL_DIR, load_model
 
 # Campos mostrados na app; os outros vêm de bundle["defaults"].
 NUMERIC_INPUTS = ["age_band", "time_in_hospital", "num_medications", "number_diagnoses",
@@ -17,6 +21,7 @@ NUMERIC_INPUTS = ["age_band", "time_in_hospital", "num_medications", "number_dia
 CATEGORICAL_INPUTS = ["discharge_disposition_id_desc", "admission_source_id_desc",
                       "diag_1_group", "A1Cresult", "insulin"]
 INPUTS = NUMERIC_INPUTS + CATEGORICAL_INPUTS
+CAPACITIES = {10: "threshold_k10", 20: "threshold_k20"}
 
 
 def make_record(bundle: dict, **values) -> pd.DataFrame:
@@ -30,11 +35,27 @@ def make_record(bundle: dict, **values) -> pd.DataFrame:
     return pd.DataFrame([row])[bundle["features"]]
 
 
+def risk_percentile(bundle: dict, score: float) -> float:
+    """Percentil (0–100) do score face às previsões OOF do treino."""
+    q = np.asarray(bundle["oof_quantiles"])
+    return 100 * np.searchsorted(q, score, side="right") / len(q)
+
+
 def predict_risk(bundle: dict, **values) -> dict:
-    """Probabilidade de readmissão < 30 dias e se fica acima do threshold (T3.3)."""
-    p = float(bundle["model"].predict_proba(make_record(bundle, **values))[0, 1])
-    t = bundle.get("threshold")
-    return {"risk": p, "flag": None if t is None else p >= t}
+    """Percentil de risco, a fração de altas com risco igual ou maior e a ação
+    (follow-up ou não) para cada capacidade."""
+    score = float(bundle["model"].predict_proba(make_record(bundle, **values))[0, 1])
+    pct = risk_percentile(bundle, score)
+    return {"percentile": pct, "top_pct": 100 - pct,
+            **{f"follow_up_k{k}": score >= bundle[key] for k, key in CAPACITIES.items()}}
+
+
+def describe(out: dict) -> str:
+    top = max(out["top_pct"], 1)
+    lines = [f"Esta alta está nos {top:.0f}% com maior risco de readmissão em menos de 30 dias."]
+    lines += [f"Com capacidade de {k}%: {'propor follow-up' if out[f'follow_up_k{k}'] else 'sem follow-up'}."
+              for k in CAPACITIES]
+    return "\n".join(lines)
 
 
 def build_app(bundle: dict):
@@ -45,14 +66,14 @@ def build_app(bundle: dict):
     inputs += [gr.Dropdown(bundle["choices"][c], value=d[c], label=c) for c in CATEGORICAL_INPUTS]
 
     def _predict(*args):
-        out = predict_risk(bundle, **dict(zip(INPUTS, args)))
-        label = "" if out["flag"] is None else (" — sinalizar para follow-up" if out["flag"] else " — sem follow-up")
-        return f"Risco de readmissão < 30 dias: {out['risk']:.1%}{label}"
+        return describe(predict_risk(bundle, **dict(zip(INPUTS, args))))
 
     return gr.Interface(fn=_predict, inputs=inputs, outputs=gr.Textbox(label="Resultado"),
-                        title="Risco de readmissão a 30 dias (diabetes)",
-                        description="Apoio à decisão no momento da alta. Não substitui o juízo clínico.")
+                        title="Prioridade de follow-up após a alta (diabetes)",
+                        description="Ordena as altas pelo risco de readmissão em menos de 30 dias. "
+                                    "Uma pessoa revê cada caso. Não estima o efeito do follow-up.",
+                        flagging_mode="never")
 
 
 if __name__ == "__main__":
-    build_app(load_model(MODEL_PATH)).launch()
+    build_app(load_model(MODEL_DIR)).launch()
