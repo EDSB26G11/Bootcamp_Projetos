@@ -43,3 +43,6 @@ docs/contributions.md
 
 # Previsões out-of-fold (geradas pelo notebook 04)
 reports/oof_*.csv
+
+# Avaliação interna do projeto (não entregar)
+docs/avaliacao_interna.md

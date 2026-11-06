@@ -44,20 +44,21 @@ Os notebooks em `notebooks/` são as bancadas de trabalho, um por fase:
 | [01_eda](notebooks/01_eda.ipynb) | Exploração | análise exploratória dos dados |
 | [02_preprocessing_check](notebooks/02_preprocessing_check.ipynb) | Preparação | mostra e valida o que o `src/` faz |
 | [03_baselines_models](notebooks/03_baselines_models.ipynb) | Modelação | baselines e modelos candidatos |
-| [04_tuning_selection](notebooks/04_tuning_selection.ipynb) | Modelação | tuning, seleção do modelo e threshold |
+| [04_tuning_selection](notebooks/04_tuning_selection.ipynb) | Modelação | seleção do modelo, ablação, threshold pela capacidade, curva de ganhos |
 | [05_interpretation_fairness](notebooks/05_interpretation_fairness.ipynb) | Avaliação | importância por permutação, métricas por idade/raça/sexo |
-| [06_deployment](notebooks/06_deployment.ipynb) | Deployment | refit, gravar modelo, testar a app |
+| [06_deployment](notebooks/06_deployment.ipynb) | Deployment | refit, gravar o modelo (skops), testar a app |
 
 Documentação em `docs/`:
 
-- [decisions.md](docs/decisions.md) — registo das decisões (D1–D16) e pressupostos, com a evidência de cada uma
+- [problem_framing.md](docs/problem_framing.md) — a decisão que o modelo apoia, os limites e os critérios de sucesso a 3 níveis
+- [decisions.md](docs/decisions.md) — registo das decisões (D1–D20) e pressupostos, com a evidência de cada uma
 - [data_preparation.md](docs/data_preparation.md) — o que faz `src/data_preparation.py` e como correr (leitura e validação dos dados, descodificação dos IDs)
 - [eda_summary.md](docs/eda_summary.md) — resumo dos achados de `notebooks/01_eda.ipynb`
 - [dicionario_variaveis.md](docs/dicionario_variaveis.md) — todas as variáveis: significado, exclusão, ajuste e variáveis derivadas
 - [anexo_medicamentos.md](docs/anexo_medicamentos.md) — classes, uso e contexto dos 23 medicamentos do dataset
 - [features_aprovadas.md](docs/features_aprovadas.md) — colunas conhecidas no momento da alta e as 34 features do modelo (feature engineering, seleção e pré-processamento)
-- [modelacao_base.md](docs/modelacao_base.md) — contexto da modelação base (baselines, modelos candidatos, registo de experiências): o que está pronto, regras, números de referência
-- [figures/](docs/figures/) — figuras da EDA (as de modelação ficam em `reports/figures/`)
+- [modelacao_base.md](docs/modelacao_base.md) — modelação: regras, números de referência e estado das decisões da fase 2
+- [figures/](docs/figures/) — figuras da EDA (as de modelação e as páginas do relatório ficam em `reports/figures/`)
 
 ## Pré-requisitos
 
@@ -88,7 +89,8 @@ Todos os comandos correm a partir da raiz do repositório:
 
 - Preparação dos dados: `python -m src.data_preparation` (detalhes em [docs/data_preparation.md](docs/data_preparation.md))
 - Testes: `python -m pytest tests/ -v`
-- App (depois de gravar o modelo no `06_deployment`): `python -m src.app`
+- Ordem dos notebooks: `03` (baselines e candidatos) → `04` (previsões out-of-fold, ablação, threshold) → `05` e `06` (leem as OOF do `04`) → `Projeto_Final`
+- App (depois de gravar o modelo no `06_deployment`): `python -m src.app`. Mostra o percentil de risco da alta e a ação para 10% e 20% de capacidade
 - Notebooks: `jupyter notebook` (ou abrir diretamente no VS Code)
 - Profiling automático (`notebooks/00_profiling.ipynb`): o `ydata-profiling` ainda exige pandas < 3, por isso usa um ambiente próprio:
   ```
@@ -107,9 +109,9 @@ Bootcamp_Projetos/
 ├── data/splits/       # split treino/teste e folds por doente (versionado, D13)
 ├── notebooks/         # bancadas de trabalho: 1 notebook = 1 fase
 ├── Projeto_Final.ipynb  # relatório final, corre de ponta a ponta
-├── src/               # código-fonte (data/, features/, pipeline.py, models/, app.py)
+├── src/               # código-fonte (data/, features/, pipeline.py, models/, viz.py para os gráficos IBCS, app.py)
 ├── models/            # modelo final em models/v1/: model.skops, config.json e model card (gerado localmente, não versionado)
-├── reports/           # experiments.csv (comparação atual), experiments_v1.csv (histórico de todas as corridas) e figures/
+├── reports/           # experiments.csv (comparação atual), experiments_v1.csv (histórico), ablação, capacidade, matrizes de confusão e figures/
 ├── tests/             # testes (pytest)
 ├── docs/              # documentação, decisões e figuras da EDA
 ├── requirements.txt   # dependências Python

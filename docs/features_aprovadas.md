@@ -89,6 +89,8 @@ O teste (`data.X_test`) só se usa na avaliação final (T3.6).
 
 ## Ainda por decidir noutras tarefas
 
-- T2: confirmar se `payer_code`, `max_glu_serum` e o indicador de registo
-  incompleto (D5) ajudam o modelo.
+- T2 (ablação feita a 6/11, D18): `payer_code` fica (retirá-lo piora a
+  PR-AUC nos 5 folds); o indicador de registo incompleto (D5) não entra;
+  `max_glu_serum` não muda o modelo e o critério manda retirá-lo, a confirmar
+  pela equipa. Enquanto não for confirmado, o modelo usa as 34 features.
 - T3.5: usar `race`, `gender` e `age_band` no modelo ou só para avaliar fairness.
