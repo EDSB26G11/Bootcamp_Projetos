@@ -5,12 +5,17 @@ Projeto do grupo para o **Enterprise Data Science Bootcamp (EDSB 2026-27)** — 
 
 ## Visão geral do projeto
 
-**Pergunta.** No momento da alta, que doentes com diabetes têm maior risco de
-voltar a ser internados em **menos de 30 dias**?
+**Pergunta.** No momento da alta hospitalar, qual o risco de um doente com
+diabetes voltar a ser internado em **menos de 30 dias**, e como usar esse risco
+para estabelecer prioridades no acompanhamento adicional? Tem duas partes:
+qual o risco (avaliado pela calibração) e que prioridade (avaliada pela
+ordenação no topo da lista) (D22).
 
 **Para quem.** Para uma equipa de follow-up que só consegue contactar uma parte
-das altas (por exemplo, 10% ou 20%). O modelo ordena as altas por risco, para
-os contactos chegarem primeiro a quem mais precisa.
+das altas (por exemplo, 10% ou 20%). O modelo estima o risco de cada alta e
+ordena as altas elegíveis, para os contactos chegarem primeiro a quem mais
+precisa. Ficam fora da lista as altas que já têm acompanhamento à saída
+(outra instituição, internamento, apoio domiciliário, paliativos; D21).
 
 **Dados.** Diabetes 130-US hospitals (1999–2008), em `data/raw/diabetic_data.csv`:
 um encontro (internamento) por linha, com dados demográficos, diagnósticos,
@@ -26,7 +31,9 @@ Positivos: 11,34%.
 - O split é feito por doente: o mesmo doente nunca aparece no treino e na validação (D13).
 - A métrica principal é a PR-AUC.
 - A métrica de negócio é o recall@10% / @20%: a fração das readmissões apanhada
-  se a equipa contactar os 10% / 20% de altas com maior risco.
+  se a equipa contactar os 10% / 20% de altas elegíveis com maior risco.
+- A calibração (risco previsto contra observado, por decis) confirma que o
+  risco estimado bate certo com as readmissões observadas.
 
 ## Abstract
 
@@ -51,7 +58,7 @@ Os notebooks em `notebooks/` são as bancadas de trabalho, um por fase:
 Documentação em `docs/`:
 
 - [problem_framing.md](docs/problem_framing.md) — a decisão que o modelo apoia, os limites e os critérios de sucesso a 3 níveis
-- [decisions.md](docs/decisions.md) — registo das decisões (D1–D21) e pressupostos, com a evidência de cada uma
+- [decisions.md](docs/decisions.md) — registo das decisões (D1–D22) e pressupostos, com a evidência de cada uma
 - [data_preparation.md](docs/data_preparation.md) — o que faz `src/data_preparation.py` e como correr (leitura e validação dos dados, descodificação dos IDs)
 - [eda_summary.md](docs/eda_summary.md) — resumo dos achados de `notebooks/01_eda.ipynb`
 - [dicionario_variaveis.md](docs/dicionario_variaveis.md) — todas as variáveis: significado, exclusão, ajuste e variáveis derivadas

@@ -121,6 +121,9 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
         "oof_quantiles": np.quantile(oof_e, np.linspace(0, 1, 1001)).tolist(),
         "n_train": int(len(oof)),
         "n_eligible": int(eligible.sum()),
+        # referência para o risco estimado na app: taxa observada de readmissão <30 dias
+        "base_rate_eligible": float(np.asarray(data.y_train)[eligible].mean()),
+        "base_rate_all": float(np.asarray(data.y_train).mean()),
         "versions": {"python": platform.python_version(), "scikit-learn": sklearn.__version__,
                      "skops": skops.__version__},
         "seed": SEED,

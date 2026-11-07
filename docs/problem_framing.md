@@ -5,6 +5,26 @@ Este documento responde às tarefas T0.5 (framing da decisão) e T0.6
 (aula W1, "Start from the decision"; aula W8, "Start from the decision the
 page supports, not from a model metric") e só depois chega às métricas.
 
+## 0. A pergunta
+
+> No momento da alta hospitalar, qual o risco de um doente voltar a ser
+> internado em menos de 30 dias, e usar esse risco para estabelecer
+> prioridades no acompanhamento adicional.
+
+Tem duas partes, e cada uma tem a sua avaliação (D22, 7/11):
+
+1. **Qual o risco** de cada doente. O modelo dá um risco estimado (score
+   entre 0 e 1). Para o poder dizer como risco, tem de bater certo com o que
+   acontece: entre altas com risco estimado de 20%, cerca de 20 em cada 100
+   voltam. Avalia-se com a **calibração** (risco previsto contra observado por
+   decis, Brier, log loss).
+2. **Que prioridade.** As altas elegíveis (D21) ordenam-se pelo risco e a
+   equipa contacta as primeiras até esgotar a capacidade. Avalia-se com a
+   **ordenação**: PR-AUC e recall e precisão no top k%.
+
+A versão anterior (6/11) tratava só a segunda parte: a app mostrava a
+posição, não o risco.
+
 ## 1. A decisão
 
 | Pergunta | Resposta |
@@ -28,6 +48,9 @@ page supports, not from a model metric") e só depois chega às métricas.
 - **Dados de 1999–2008, sem datas.** Não há períodos para ver se o modelo
   continua certo ao longo do tempo; a validação é feita por doente (D13).
 - **Revisão humana.** O modelo ordena; uma pessoa decide cada contacto.
+- **O risco vale para estes dados.** O risco estimado está calibrado para os
+  hospitais e o período do dataset (EUA, 1999–2008). Noutro hospital ou noutro
+  período teria de ser verificado outra vez.
 
 ## 3. Critérios de sucesso a 3 níveis
 
@@ -39,7 +62,8 @@ confirma uma vez, no teste, na avaliação final (T3.6).
 
 | Nível | Medida | Meta (PL) | Atual (OOF, k = 10%) | Como se confirma |
 |---|---|---|---|---|
-| **Modelo** | PR-AUC; recall e precisão no top k% | Bater a ordenação por `number_inpatient` à mesma capacidade, em PR-AUC e em recall@10% e @20% | PR-AUC 0,202 (ordenação por `number_inpatient`: 0,169; ao acaso: 0,096). Recall@10% 25,0% (24,0%; 10%): +1,3 pp ± 1,2 entre folds, melhor em 4 de 5. Recall@20% 40,1% (37,6%; 20%): +2,6 pp ± 1,3, melhor nos 5 | Teste, uma vez (T3.6) |
+| **Modelo: prioridade** (2.ª parte da pergunta) | PR-AUC; recall e precisão no top k% | Bater a ordenação por `number_inpatient` à mesma capacidade, em PR-AUC e em recall@10% e @20% | PR-AUC 0,202 (ordenação por `number_inpatient`: 0,169; ao acaso: 0,096). Recall@10% 25,0% (24,0%; 10%): +1,3 pp ± 1,2 entre folds, melhor em 4 de 5. Recall@20% 40,1% (37,6%; 20%): +2,6 pp ± 1,3, melhor nos 5 | Teste, uma vez (T3.6) |
+| **Modelo: risco** (1.ª parte da pergunta) | Risco previsto contra readmissões observadas, por decis; Brier | Em cada decil, previsto e observado a menos de 2 pp; Brier abaixo do da ordem ao acaso | Previsto e observado a menos de 1 pp em todos os decis (maior diferença: 0,6 pp em todas as altas, 0,8 pp nas elegíveis). Brier nas elegíveis 0,083 (ordem ao acaso: 0,086). `reports/calibration_v1.csv` | Teste, uma vez (T3.6) |
 | **Operacional** | Fração de altas elegíveis sinalizadas pelo corte, face à capacidade | O corte gravado (`threshold_k10`, `threshold_k20` em `config.json`) sinaliza k ± 1 pp das altas elegíveis do teste | Nas OOF, 10,0% e 20,0% por construção | Teste, uma vez (B6 no `04_tuning_selection`) |
 | **Negócio** | Readmissões em menos de 30 dias encontradas por cada 1 000 altas elegíveis | Mais do que a ordenação por `number_inpatient` à mesma capacidade | k = 10%: 24 por 1 000 altas elegíveis (23 com `number_inpatient`, 10 ao acaso), 1 255 contra 1 201 readmissões encontradas. k = 20%: 38 (36; 19), 2 011 contra 1 882 | Teste, uma vez; no deck, a página "modelo contra baseline" |
 

@@ -3,9 +3,11 @@ Demo Gradio do modelo final (fase IV, deployment).
 
 Lê a pasta gravada por src.models.train.save_model (model.skops + config.json).
 O utilizador preenche as features com mais peso; as restantes ficam com a
-mediana/moda do treino. A saída diz em que posição de risco a alta está face
-às previsões OOF do treino e a ação para cada capacidade. Não mostra
-probabilidades, gauges nem semáforos.
+mediana/moda do treino. A saída responde às duas partes da pergunta: qual o
+risco de readmissão em menos de 30 dias (o score do modelo, que bate certo com
+as readmissões observadas nas previsões OOF, por decis) e que prioridade
+(posição face às altas elegíveis e ação para cada capacidade). Sem gauges nem
+semáforos.
 
 Layout segundo a W8 (IBCS), onde se aplica a uma app:
 - mensagem primeiro (uma frase que se pode verificar), título em três linhas
@@ -108,18 +110,27 @@ def is_eligible(bundle: dict, **values) -> bool:
 
 
 def predict_risk(bundle: dict, **values) -> dict:
-    """Percentil de risco, a fração de altas com risco igual ou maior e a ação
-    (follow-up ou não) para cada capacidade. Uma alta fora da lista (D21) tem
-    risco e posição, mas nunca follow-up."""
+    """Risco estimado (score do modelo), percentil de risco, a fração de altas
+    com risco igual ou maior e a ação (follow-up ou não) para cada capacidade.
+    Uma alta fora da lista (D21) tem risco e posição, mas nunca follow-up."""
     score = float(bundle["model"].predict_proba(make_record(bundle, **values))[0, 1])
     pct_ = risk_percentile(bundle, score)
     eligible = is_eligible(bundle, **values)
-    return {"percentile": pct_, "top_pct": 100 - pct_, "eligible": eligible,
+    return {"risk": score, "base_rate": bundle.get("base_rate_eligible"), "percentile": pct_,
+            "top_pct": 100 - pct_, "eligible": eligible,
             **{f"follow_up_k{k}": eligible and score >= bundle[key] for k, key in CAPACITIES.items()}}
 
 
 def _top(out: dict) -> float:
     return max(out["top_pct"], 1)
+
+
+def _risk_text(out: dict) -> str:
+    """'risco estimado de 23% (média das altas elegíveis: 9,6%)'."""
+    if "risk" not in out:
+        return ""
+    ref = f" (média das altas elegíveis: {pct(out['base_rate'], 1)})" if out.get("base_rate") else ""
+    return f"risco estimado de {pct(out['risk'], 0)}{ref}"
 
 
 NOT_ELIGIBLE = "fora da lista (já tem acompanhamento à saída)"
@@ -132,57 +143,80 @@ def _action(out: dict, k: int) -> str:
 
 
 def describe(out: dict) -> str:
-    lines = [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias."]
+    risk = _risk_text(out)
+    lines = ([f"Readmissão em menos de 30 dias: {risk}."] if risk else [])
+    lines += [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias."]
     if not out.get("eligible", True):
-        return lines[0] + "\nFora da lista de follow-up: o destino da alta já tem acompanhamento."
+        return "\n".join(lines + ["Fora da lista de follow-up: o destino da alta já tem acompanhamento."])
     lines += [f"Com capacidade de {k}%: {_action(out, k)}." for k in CAPACITIES]
     return "\n".join(lines)
 
 
 def message(out: dict) -> str:
-    """Mensagem IBCS: a conclusão primeiro, numa frase."""
+    """Mensagem IBCS: a conclusão primeiro, numa frase; o risco e a posição a seguir."""
     k_in = [k for k in CAPACITIES if out[f"follow_up_k{k}"]]
     top = pct(_top(out) / 100, 0)
+    risk = _risk_text(out)
+    risk_line = f"Readmissão em menos de 30 dias: **{risk}**. " if risk else ""
     if not out.get("eligible", True):
         return ("### Fora da lista de follow-up: o destino da alta já tem acompanhamento\n"
-                f"O doente continua internado, vai para outra instituição ou sai com apoio domiciliário ou "
-                f"paliativo. O risco fica registado (nos {top} com maior risco), mas a capacidade da equipa "
-                "fica para quem volta para casa sem acompanhamento.")
+                f"{risk_line}Está nos {top} com maior risco. O doente continua internado, vai para outra "
+                "instituição ou sai com apoio domiciliário ou paliativo; a capacidade da equipa fica para quem "
+                "volta para casa sem acompanhamento.")
     if k_in:
         return (f"### Propor follow-up: esta alta está nos {top} com maior risco de readmissão em menos de 30 dias\n"
-                f"Entra na lista com capacidade para {min(k_in)}% das altas ou mais.")
+                f"{risk_line}Entra na lista com capacidade para {min(k_in)}% das altas elegíveis ou mais.")
     return (f"### Sem follow-up: esta alta não está nas {max(CAPACITIES)}% com maior risco de readmissão "
-            f"em menos de 30 dias\nFica nos {top} com maior risco; não entra na lista com capacidade até "
-            f"{max(CAPACITIES)}% das altas.")
+            f"em menos de 30 dias\n{risk_line}Fica nos {top} com maior risco; não entra na lista com capacidade até "
+            f"{max(CAPACITIES)}% das altas elegíveis.")
 
 
 def action_table(out: dict) -> pd.DataFrame:
     return pd.DataFrame({
-        "Capacidade da equipa (contacta as altas de maior risco)": [f"{k}% das altas" for k in CAPACITIES],
+        "Capacidade da equipa (contacta as altas elegíveis de maior risco)": [f"{k}% das altas" for k in CAPACITIES],
         "Ação para esta alta": [_action(out, k).capitalize() for k in CAPACITIES],
     })
 
 
 def risk_chart(out: dict):
-    """Posição da alta na ordenação das altas de treino, com os cortes de capacidade.
+    """Duas partes, como as duas partes da pergunta:
 
-    Eixo da esquerda (maior risco) para a direita; a faixa clara são todas as
-    altas, a parte mais escura as que cabem na maior capacidade, o marcador
-    escuro é esta alta. Rótulos diretos, sem legenda nem grelha.
+    1. qual o risco: barra do risco estimado desta alta contra a média das
+       altas elegíveis (mesma escala, rótulos diretos);
+    2. que prioridade: posição da alta na ordenação das altas elegíveis, com
+       os cortes de capacidade (esquerda = maior risco).
     """
     from matplotlib.figure import Figure  # sem pyplot: não acumula figuras no servidor
 
-    top = min(max(out["top_pct"], 0.5), 99.5)
-    fig = Figure(figsize=(8, 2.3))
+    fig = Figure(figsize=(8, 3.9))
     fig.patch.set_alpha(0)
-    ax = fig.add_axes([0.015, 0.0, 0.97, 1.0])
+
+    # 1. Risco estimado contra a média
+    ax1 = fig.add_axes([0.015, 0.60, 0.97, 0.38])
+    ax1.axis("off")
+    risk, base = out.get("risk"), out.get("base_rate")
+    ax1.text(0, 1.0, "Risco estimado de readmissão em menos de 30 dias, em %", fontsize=10, color=MUTED,
+             va="top", transform=ax1.transAxes)
+    if risk is not None:
+        rows = [("Esta alta", risk, TEAL_DARK)] + ([("Média das altas elegíveis", base, CONTEXT)] if base else [])
+        width = 0.6 / max(v for _, v, _ in rows)  # a barra maior ocupa 60% da largura; deixa espaço ao valor
+        for i, (label, v, color) in enumerate(rows):
+            y = -i
+            ax1.barh(y, v * width, left=0.27, color=color, height=0.55)
+            ax1.text(0.26, y, label, fontsize=9.5, color=TEXT, ha="right", va="center")
+            ax1.text(0.27 + v * width + 0.008, y, pct(v, 1 if v < 0.1 else 0), fontsize=10,
+                     fontweight="bold" if i == 0 else None, color=TEAL_DARK if i == 0 else MUTED, va="center")
+        ax1.set_xlim(0, 1)
+        ax1.set_ylim(-len(rows) + 0.3, 1.1)
+
+    # 2. Posição na lista
+    top = min(max(out["top_pct"], 0.5), 99.5)
+    ax = fig.add_axes([0.015, 0.0, 0.97, 0.56])
     ax.set_xlim(0, 100)
     ax.set_ylim(-1.7, 1.6)
     ax.axis("off")
-    # Título do gráfico (o quê e unidade), como nas páginas do relatório.
-    ax.text(0, 1.55, "Altas elegíveis para follow-up, ordenadas pelo risco de readmissão, em % das altas", fontsize=10,
+    ax.text(0, 1.55, "Altas elegíveis para follow-up, ordenadas pelo risco, em % das altas", fontsize=10,
             color=MUTED, va="top")
-    # Faixa: cinzento = restantes altas; verde = quem entra na lista de follow-up (10% e 20%).
     ax.barh(0, 100, color=CONTEXT, height=0.62)
     ax.barh(0, 20, color=TEAL_MID, height=0.62)
     ax.barh(0, 10, color=TEAL, height=0.62)
@@ -193,9 +227,8 @@ def risk_chart(out: dict):
         ax.text(x, -0.45, t, fontsize=9.5, color=c, ha=ha, va="top")
     ax.text(0, -1.05, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
     ax.text(100, -1.05, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
-    ax.text(22, -1.05, "a verde: entram na lista de follow-up (até 10% ou até 20% das altas elegíveis)", fontsize=9.5,
-            color=TEAL_DARK, ha="left", va="top")
-    # Esta alta: marcador escuro e rótulo direto.
+    ax.text(22, -1.05, "a verde: entram na lista (até 10% ou até 20% das elegíveis)",
+            fontsize=9.5, color=TEAL_DARK, ha="left", va="top")
     ax.plot(top, 0.55, marker="v", color=TEAL_DARK, markersize=12)
     ax.text(top + (1.2 if top < 60 else -1.2), 0.78, f"esta alta: {pct(_top(out) / 100, 0)} com maior risco",
             fontsize=11, fontweight="bold", color=TEAL_DARK, ha="left" if top < 60 else "right", va="center")
@@ -258,7 +291,7 @@ def build_app(bundle: dict):
         gr.HTML(
             '<div class="app-header"><h1>Prioridade de follow-up após a alta</h1>'
             '<p>Diabetes 130-US hospitals · modelo v1 (HistGradientBoosting)</p>'
-            f'<p><strong>Posição no risco de readmissão &lt; 30 dias</strong>, face a {base}, '
+            f'<p><strong>Risco de readmissão &lt; 30 dias e posição na lista</strong>, face a {base}, '
             'e ação por capacidade da equipa</p>'
             '<p>Dados de 1999–2008 · risco comparado com as previsões out-of-fold do treino</p></div>')
 
@@ -299,9 +332,11 @@ def build_app(bundle: dict):
                 table = gr.Dataframe(interactive=False, show_label=False, wrap=True)
                 gr.Markdown(
                     "Os campos que não aparecem ficam com o valor mais comum no treino. "
+                    "Risco estimado: em altas com este risco, é a fração que voltou em menos de 30 dias "
+                    "(nas previsões out-of-fold, previsto e observado coincidem por decis). "
                     "Ficam fora da lista as altas para outro hospital ou instituição, internamento, "
                     "apoio domiciliário ou cuidados paliativos: já têm acompanhamento (D21). "
-                    "É uma posição na ordenação, não uma probabilidade. Uma pessoa revê cada caso; "
+                    "Uma pessoa revê cada caso; "
                     "o modelo não estima o efeito do follow-up nem é causal.",
                     elem_classes="footnote")
 

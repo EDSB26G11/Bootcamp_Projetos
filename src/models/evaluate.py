@@ -127,3 +127,19 @@ def metrics_by_group(y, scores, groups, k: float = 0.10, min_n: int = 100) -> pd
                      "precision": d.loc[d["flag"], "y"].mean() if d["flag"].any() else np.nan,
                      "pr_auc": average_precision_score(d["y"], d["s"]) if d["y"].nunique() > 1 else np.nan})
     return pd.DataFrame(rows).set_index("group")
+
+
+def calibration_table(y, scores, n_bins: int = 10) -> pd.DataFrame:
+    """Risco previsto contra readmissões observadas, por grupos de igual
+    tamanho ordenados pelo score (decis com n_bins=10).
+
+    Responde à 1.ª parte da pergunta ("qual o risco"): se o modelo diz 20%,
+    cerca de 20 em cada 100 altas desse grupo voltam em menos de 30 dias.
+    Sem calibração isotónica/Platt (não dada nas aulas): só se verifica.
+    """
+    d = pd.DataFrame({"y": np.asarray(y), "s": np.asarray(scores)})
+    d["grupo"] = pd.qcut(d["s"].rank(method="first"), n_bins, labels=range(1, n_bins + 1))
+    out = d.groupby("grupo", observed=True).agg(n=("y", "size"), risco_previsto=("s", "mean"),
+                                                observado=("y", "mean"))
+    out["diferenca"] = out["risco_previsto"] - out["observado"]
+    return out

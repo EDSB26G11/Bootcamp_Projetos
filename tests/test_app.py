@@ -91,3 +91,12 @@ def test_app_not_eligible_never_gets_follow_up(saved):
     assert not out["eligible"] and not out["follow_up_k10"] and not out["follow_up_k20"]
     assert 0 <= out["percentile"] <= 100
     assert "Fora da lista" in message(out) and "Fora da lista" in describe(out)
+
+
+def test_app_shows_estimated_risk_with_reference(saved):
+    bundle = load_model(saved[2])
+    out = predict_risk(bundle, number_inpatient=4, number_emergency=0, number_outpatient=0)
+    assert 0 <= out["risk"] <= 1 and out["base_rate"] == pytest.approx(bundle["base_rate_eligible"])
+    text = describe(out)
+    assert "risco estimado de" in text and "média das altas elegíveis" in text
+    assert "risco estimado de" in message(out)

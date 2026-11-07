@@ -142,3 +142,15 @@ def test_baseline_reproduces_reference():
     assert m["roc_auc"] == pytest.approx(0.592, abs=0.002)
     assert m["recall_at_10"] == pytest.approx(0.148, abs=0.003)
     assert m["recall_at_20"] == pytest.approx(0.299, abs=0.003)
+
+
+def test_calibration_table_perfect_and_shape():
+    from src.models.evaluate import calibration_table
+
+    rng = np.random.RandomState(0)
+    p = rng.uniform(0, 0.5, 20000)
+    y = (rng.uniform(size=p.size) < p).astype(int)  # y gerado com probabilidade p: bem calibrado
+    t = calibration_table(y, p)
+    assert len(t) == 10 and t["n"].sum() == p.size
+    assert t["risco_previsto"].is_monotonic_increasing
+    assert (t["diferenca"].abs() < 0.03).all()
