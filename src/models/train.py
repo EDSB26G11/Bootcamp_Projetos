@@ -24,6 +24,7 @@ import skops.io as sio
 import sklearn
 from sklearn.base import clone
 
+from src.data.population import NO_FOLLOW_UP_DISCHARGE, follow_up_eligible
 from src.data.split import SEED
 from src.models.evaluate import cv_predict
 from src.models.threshold import threshold_for_capacity
@@ -97,24 +98,29 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
 
     - model.skops: o pipeline;
     - config.json: features, valores por defeito e opções de cada campo (para
-      a app), thresholds a 10% e 20% de capacidade, quantis das previsões OOF
-      (para o percentil de risco), versões e seed;
+      a app), destinos de alta fora da lista de follow-up (D21), thresholds a
+      10% e 20% de capacidade e quantis das previsões OOF (para o percentil de
+      risco), ambos calculados só nas altas elegíveis; versões e seed;
     - README.md: o model card (só se ainda não existir, para não o apagar).
     """
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     X = data.X_train
     oof = np.asarray(oof_scores)
+    eligible = follow_up_eligible(X).to_numpy()
+    oof_e = oof[eligible]  # a lista de prioridades só tem altas elegíveis (D21)
     config = {
         "features": list(X.columns),
         "defaults": {c: _jsonable(X[c].median() if pd.api.types.is_numeric_dtype(X[c]) else X[c].mode().iat[0])
                      for c in X.columns},
         "choices": {c: sorted(X[c].unique().tolist()) for c in X.columns
                     if not pd.api.types.is_numeric_dtype(X[c])},
-        "threshold_k10": threshold_for_capacity(oof, 0.10),
-        "threshold_k20": threshold_for_capacity(oof, 0.20),
-        "oof_quantiles": np.quantile(oof, np.linspace(0, 1, 1001)).tolist(),
+        "no_follow_up_discharge": sorted(NO_FOLLOW_UP_DISCHARGE.values()),
+        "threshold_k10": threshold_for_capacity(oof_e, 0.10),
+        "threshold_k20": threshold_for_capacity(oof_e, 0.20),
+        "oof_quantiles": np.quantile(oof_e, np.linspace(0, 1, 1001)).tolist(),
         "n_train": int(len(oof)),
+        "n_eligible": int(eligible.sum()),
         "versions": {"python": platform.python_version(), "scikit-learn": sklearn.__version__,
                      "skops": skops.__version__},
         "seed": SEED,

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.app import INPUTS, describe, make_record, predict_risk, risk_percentile
+from src.app import INPUTS, describe, is_eligible, make_record, message, predict_risk, risk_percentile
 from src.features.build import CATEGORICAL_FEATURES, FEATURES
 from src.models.baselines import candidate_models
 from src.models.evaluate import predict_scores
@@ -79,3 +79,15 @@ def test_build_app(saved):
     from src.app import build_app
 
     assert build_app(load_model(saved[2])) is not None
+
+
+def test_app_not_eligible_never_gets_follow_up(saved):
+    bundle = load_model(saved[2])
+    assert bundle["no_follow_up_discharge"] and bundle["n_eligible"] <= bundle["n_train"]
+    dest = bundle["no_follow_up_discharge"][0]
+    assert not is_eligible(bundle, discharge_disposition_id_desc=dest)
+    out = predict_risk(bundle, discharge_disposition_id_desc=dest, number_inpatient=4, number_emergency=0,
+                       number_outpatient=0)
+    assert not out["eligible"] and not out["follow_up_k10"] and not out["follow_up_k20"]
+    assert 0 <= out["percentile"] <= 100
+    assert "Fora da lista" in message(out) and "Fora da lista" in describe(out)

@@ -95,30 +95,46 @@ def make_record(bundle: dict, **values) -> pd.DataFrame:
 
 
 def risk_percentile(bundle: dict, score: float) -> float:
-    """Percentil (0–100) do score face às previsões OOF do treino."""
+    """Percentil (0–100) do score face às previsões OOF das altas elegíveis do treino (D21)."""
     q = np.asarray(bundle["oof_quantiles"])
     return 100 * np.searchsorted(q, score, side="right") / len(q)
 
 
+def is_eligible(bundle: dict, **values) -> bool:
+    """A alta pode entrar na lista de follow-up? Não, se o destino da alta já
+    tem acompanhamento institucional (D21)."""
+    dest = values.get("discharge_disposition_id_desc", bundle["defaults"]["discharge_disposition_id_desc"])
+    return dest not in set(bundle.get("no_follow_up_discharge", []))
+
+
 def predict_risk(bundle: dict, **values) -> dict:
     """Percentil de risco, a fração de altas com risco igual ou maior e a ação
-    (follow-up ou não) para cada capacidade."""
+    (follow-up ou não) para cada capacidade. Uma alta fora da lista (D21) tem
+    risco e posição, mas nunca follow-up."""
     score = float(bundle["model"].predict_proba(make_record(bundle, **values))[0, 1])
     pct_ = risk_percentile(bundle, score)
-    return {"percentile": pct_, "top_pct": 100 - pct_,
-            **{f"follow_up_k{k}": score >= bundle[key] for k, key in CAPACITIES.items()}}
+    eligible = is_eligible(bundle, **values)
+    return {"percentile": pct_, "top_pct": 100 - pct_, "eligible": eligible,
+            **{f"follow_up_k{k}": eligible and score >= bundle[key] for k, key in CAPACITIES.items()}}
 
 
 def _top(out: dict) -> float:
     return max(out["top_pct"], 1)
 
 
+NOT_ELIGIBLE = "fora da lista (já tem acompanhamento à saída)"
+
+
 def _action(out: dict, k: int) -> str:
+    if not out.get("eligible", True):
+        return NOT_ELIGIBLE
     return "propor follow-up" if out[f"follow_up_k{k}"] else "sem follow-up"
 
 
 def describe(out: dict) -> str:
     lines = [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias."]
+    if not out.get("eligible", True):
+        return lines[0] + "\nFora da lista de follow-up: o destino da alta já tem acompanhamento."
     lines += [f"Com capacidade de {k}%: {_action(out, k)}." for k in CAPACITIES]
     return "\n".join(lines)
 
@@ -127,6 +143,11 @@ def message(out: dict) -> str:
     """Mensagem IBCS: a conclusão primeiro, numa frase."""
     k_in = [k for k in CAPACITIES if out[f"follow_up_k{k}"]]
     top = pct(_top(out) / 100, 0)
+    if not out.get("eligible", True):
+        return ("### Fora da lista de follow-up: o destino da alta já tem acompanhamento\n"
+                f"O doente continua internado, vai para outra instituição ou sai com apoio domiciliário ou "
+                f"paliativo. O risco fica registado (nos {top} com maior risco), mas a capacidade da equipa "
+                "fica para quem volta para casa sem acompanhamento.")
     if k_in:
         return (f"### Propor follow-up: esta alta está nos {top} com maior risco de readmissão em menos de 30 dias\n"
                 f"Entra na lista com capacidade para {min(k_in)}% das altas ou mais.")
@@ -159,7 +180,7 @@ def risk_chart(out: dict):
     ax.set_ylim(-1.7, 1.6)
     ax.axis("off")
     # Título do gráfico (o quê e unidade), como nas páginas do relatório.
-    ax.text(0, 1.55, "Altas de treino ordenadas pelo risco de readmissão, em % das altas", fontsize=10,
+    ax.text(0, 1.55, "Altas elegíveis para follow-up, ordenadas pelo risco de readmissão, em % das altas", fontsize=10,
             color=MUTED, va="top")
     # Faixa: cinzento = restantes altas; verde = quem entra na lista de follow-up (10% e 20%).
     ax.barh(0, 100, color=CONTEXT, height=0.62)
@@ -172,7 +193,7 @@ def risk_chart(out: dict):
         ax.text(x, -0.45, t, fontsize=9.5, color=c, ha=ha, va="top")
     ax.text(0, -1.05, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
     ax.text(100, -1.05, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
-    ax.text(22, -1.05, "a verde: entram na lista de follow-up (até 10% ou até 20% das altas)", fontsize=9.5,
+    ax.text(22, -1.05, "a verde: entram na lista de follow-up (até 10% ou até 20% das altas elegíveis)", fontsize=9.5,
             color=TEAL_DARK, ha="left", va="top")
     # Esta alta: marcador escuro e rótulo direto.
     ax.plot(top, 0.55, marker="v", color=TEAL_DARK, markersize=12)
@@ -228,8 +249,9 @@ def build_app(bundle: dict):
     import gradio as gr  # só é preciso para correr a app, não para os testes
 
     d = bundle["defaults"]
-    n = bundle.get("n_train")
-    base = f"{n:,}".replace(",", " ") + " altas de treino" if n else "as altas de treino"
+    n = bundle.get("n_eligible")
+    base = (f"{n:,}".replace(",", " ") + " altas de treino elegíveis para follow-up" if n
+            else "as altas de treino elegíveis para follow-up")
 
     with gr.Blocks(title="Prioridade de follow-up", fill_width=False) as demo:
         # Título em três linhas (quem, o quê, quando), como nas páginas do relatório.
@@ -277,6 +299,8 @@ def build_app(bundle: dict):
                 table = gr.Dataframe(interactive=False, show_label=False, wrap=True)
                 gr.Markdown(
                     "Os campos que não aparecem ficam com o valor mais comum no treino. "
+                    "Ficam fora da lista as altas para outro hospital ou instituição, internamento, "
+                    "apoio domiciliário ou cuidados paliativos: já têm acompanhamento (D21). "
                     "É uma posição na ordenação, não uma probabilidade. Uma pessoa revê cada caso; "
                     "o modelo não estima o efeito do follow-up nem é causal.",
                     elem_classes="footnote")

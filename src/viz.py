@@ -145,11 +145,11 @@ def model_vs_baseline(table, k, n_altas, footnote):
     axd.set_title("Δ face a internamentos anteriores", color=NOTE, fontsize=9, loc="left")
     ax.set_xlim(0, lim * 1.15)
     model_name = vals.index[0]
-    msg = (f"Contactando as {num(n_altas * k)} altas de maior risco ({pct(k, 0)} de {num(n_altas)}), "
+    msg = (f"Contactando as {num(n_altas * k)} altas de maior risco ({pct(k, 0)} das {num(n_altas)} elegíveis), "
            f"o modelo encontraria {num(vals[model_name])} readmissões em menos de 30 dias, "
            f"{num(delta[model_name])} mais do que ordenando por internamentos anteriores")
     return report_page(
         fig, msg,
-        "Diabetes 130-US hospitals, encontros de treino (previsões out-of-fold, 5 folds por doente)",
-        "Readmissões <30 dias encontradas", f"em #, com capacidade para {pct(k, 0)} das altas, por método",
+        "Diabetes 130-US hospitals, altas de treino elegíveis para follow-up (previsões out-of-fold, 5 folds por doente)",
+        "Readmissões <30 dias encontradas", f"em #, com capacidade para {pct(k, 0)} das altas elegíveis, por método",
         "1999–2008, AC e Δ face à ordenação por internamentos anteriores", footnote, top=0.66, left=0.27)

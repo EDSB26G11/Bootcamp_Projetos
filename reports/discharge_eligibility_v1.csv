@@ -1,0 +1,22 @@
+destino,encontros,taxa_30d,na_lista_10,elegivel,pct_da_lista_10
+Discharged to home,48168,0.09354758345789736,2882,True,0.36002498438475955
+Discharged/transferred to SNF,11172,0.1435732187611887,1548,False,0.1933791380387258
+Discharged/transferred to home with home health service,10327,0.1294664471773022,1064,False,0.13291692692067458
+Desconhecido,3747,0.11502535361622632,299,True,0.03735165521549032
+Discharged/transferred to another short term hospital,1682,0.1634958382877527,395,False,0.04934415990006246
+Discharged/transferred to another rehab fac including rehab units of a hospital .,1598,0.27909887359199,1141,False,0.14253591505309182
+Discharged/transferred to another type of inpatient care institution,911,0.1942919868276619,302,False,0.0377264209868832
+Discharged/transferred to ICF,653,0.12098009188361408,55,False,0.006870705808869456
+Left AMA,498,0.14859437751004015,88,True,0.01099312929419113
+Discharged/transferred to a long term care hospital.,345,0.08115942028985507,19,False,0.0023735165521549034
+Hospice / home,308,0.04220779220779221,4,False,0.0004996876951905059
+Hospice / medical facility,301,0.059800664451827246,2,False,0.00024984384759525296
+Discharged/transferred/referred to a psychiatric hospital of psychiatric distinct part unit of a hospital,106,0.37735849056603776,60,False,0.007495315427857589
+Discharged/transferred to home under care of Home IV provider,91,0.15384615384615385,52,False,0.006495940037476577
+Discharged/transferred within this institution to Medicare approved swing bed,50,0.42,42,False,0.005246720799500312
+Discharged/transferred to a nursing facility certified under Medicaid but not certified under Medicare.,46,0.15217391304347827,31,False,0.003872579637726421
+Admitted as an inpatient to this hospital,13,0.3076923076923077,9,False,0.0011242973141786384
+Discharged/transferred/referred to this institution for outpatient services,11,0.0,4,True,0.0004996876951905059
+Discharged/transferred/referred another institution for outpatient services,9,0.0,6,True,0.0007495315427857589
+Discharged/transferred to a federal health care facility.,3,0.0,1,True,0.00012492192379762648
+Still patient or expected to return for outpatient services,2,1.0,1,False,0.00012492192379762648

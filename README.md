@@ -51,7 +51,7 @@ Os notebooks em `notebooks/` são as bancadas de trabalho, um por fase:
 Documentação em `docs/`:
 
 - [problem_framing.md](docs/problem_framing.md) — a decisão que o modelo apoia, os limites e os critérios de sucesso a 3 níveis
-- [decisions.md](docs/decisions.md) — registo das decisões (D1–D20) e pressupostos, com a evidência de cada uma
+- [decisions.md](docs/decisions.md) — registo das decisões (D1–D21) e pressupostos, com a evidência de cada uma
 - [data_preparation.md](docs/data_preparation.md) — o que faz `src/data_preparation.py` e como correr (leitura e validação dos dados, descodificação dos IDs)
 - [eda_summary.md](docs/eda_summary.md) — resumo dos achados de `notebooks/01_eda.ipynb`
 - [dicionario_variaveis.md](docs/dicionario_variaveis.md) — todas as variáveis: significado, exclusão, ajuste e variáveis derivadas
@@ -90,7 +90,7 @@ Todos os comandos correm a partir da raiz do repositório:
 - Preparação dos dados: `python -m src.data_preparation` (detalhes em [docs/data_preparation.md](docs/data_preparation.md))
 - Testes: `python -m pytest tests/ -v`
 - Ordem dos notebooks: `03` (baselines e candidatos) → `04` (previsões out-of-fold, ablação, threshold) → `05` e `06` (leem as OOF do `04`) → `Projeto_Final`
-- App (depois de gravar o modelo no `06_deployment`): `python -m src.app`. Mostra o percentil de risco da alta e a ação para 10% e 20% de capacidade
+- App (depois de gravar o modelo no `06_deployment`): `python -m src.app`. Mostra a posição de risco da alta e a ação para 10% e 20% de capacidade. As altas para outra instituição, internamento, apoio domiciliário ou paliativos aparecem como "fora da lista" (D21)
 - Notebooks: `jupyter notebook` (ou abrir diretamente no VS Code)
 - Profiling automático (`notebooks/00_profiling.ipynb`): o `ydata-profiling` ainda exige pandas < 3, por isso usa um ambiente próprio:
   ```

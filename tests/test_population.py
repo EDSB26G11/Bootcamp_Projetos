@@ -6,6 +6,8 @@ import pytest
 from src.data.load import load_diabetic_data
 from src.data.population import (
     DEATH_DISCHARGE_IDS,
+    NO_FOLLOW_UP_DISCHARGE,
+    follow_up_eligible,
     add_target,
     define_population,
     exclude_deaths,
@@ -13,6 +15,7 @@ from src.data.population import (
 )
 
 RAW_DATA = "data/raw/diabetic_data.csv"
+RAW_MAPPING = "data/raw/IDS_mapping.csv"
 
 
 def test_excludes_deaths_only():
@@ -55,3 +58,19 @@ def test_real_file_without_impossible_encounters():
     assert len(raw) - len(exclude_impossible(raw)) == 59
     assert len(df) == 100_052
     assert df["patient_nbr"].nunique() == 70_412
+
+
+def test_follow_up_eligible():
+    df = pd.DataFrame({"discharge_disposition_id_desc": [
+        "Discharged to home", NO_FOLLOW_UP_DISCHARGE[3], "Desconhecido", NO_FOLLOW_UP_DISCHARGE[22], "Left AMA"]})
+    assert follow_up_eligible(df).tolist() == [True, False, True, False, True]
+    assert not set(NO_FOLLOW_UP_DISCHARGE) & set(DEATH_DISCHARGE_IDS)
+
+
+@pytest.mark.skipif(not os.path.exists(RAW_MAPPING), reason="data/raw não disponível")
+def test_no_follow_up_descriptions_match_ids_mapping():
+    from src.data.mappings import parse_ids_mapping
+
+    table = parse_ids_mapping(RAW_MAPPING)["discharge_disposition_id"]
+    desc = dict(zip(table["discharge_disposition_id"].astype(int), table["description"]))
+    assert {i: desc[i] for i in NO_FOLLOW_UP_DISCHARGE} == NO_FOLLOW_UP_DISCHARGE
