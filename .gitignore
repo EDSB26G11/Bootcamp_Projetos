@@ -1,6 +1,7 @@
 # Ambientes virtuais
 .venv/
 .venv-profiling/
+.venv-kumo/
 venv/
 env/
 
