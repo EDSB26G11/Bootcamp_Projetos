@@ -7,6 +7,7 @@ encontro: nenhuma agregação por doente nem ordem do encounter_id (D12).
 
 import pandas as pd
 
+from src.data.mappings import UNKNOWN_LABEL
 from src.data.quality import icd9_numeric
 
 DIAG_COLS = ["diag_1", "diag_2", "diag_3"]
@@ -119,3 +120,13 @@ def model_frame(df: pd.DataFrame) -> pd.DataFrame:
     x = build_features(df)[FEATURES].copy()
     x[CATEGORICAL_FEATURES] = x[CATEGORICAL_FEATURES].astype("object").fillna(MISSING)
     return x
+
+
+# --- Ablação F2·2: indicador de registo de admissão incompleto (D5) ----------
+
+ID_DESC_COLS = ["admission_type_id_desc", "discharge_disposition_id_desc", "admission_source_id_desc"]
+
+
+def incomplete_record(df: pd.DataFrame) -> pd.Series:
+    """1 se algum dos três IDs da admissão/alta é desconhecido (D5); só para a ablação."""
+    return df[ID_DESC_COLS].eq(UNKNOWN_LABEL).any(axis=1).astype(int).rename("incomplete_record")

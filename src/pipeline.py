@@ -67,20 +67,23 @@ def load_model_data(processed: str = PROCESSED, splits: str = SPLITS) -> ModelDa
     )
 
 
-def build_preprocessor() -> ColumnTransformer:
+def build_preprocessor(exclude=(), extra_binary=()) -> ColumnTransformer:
     """Numéricas escaladas, contagens com log1p, categóricas em one-hot.
 
     Serve para modelos lineares e de árvores (a escala não muda as árvores).
+    `exclude` e `extra_binary` só servem para ablações (F2·2): retirar colunas
+    ou acrescentar indicadores 0/1 que não estão em FEATURES.
     """
+    keep = lambda cols: [c for c in cols if c not in exclude]
     return ColumnTransformer(
         [
-            ("num", StandardScaler(), NUMERIC_FEATURES),
+            ("num", StandardScaler(), keep(NUMERIC_FEATURES)),
             ("counts", make_pipeline(FunctionTransformer(np.log1p, feature_names_out="one-to-one"),
-                                     StandardScaler()), COUNT_FEATURES),
-            ("bin", "passthrough", BINARY_FEATURES),
+                                     StandardScaler()), keep(COUNT_FEATURES)),
+            ("bin", "passthrough", keep(BINARY_FEATURES) + list(extra_binary)),
             ("cat", OneHotEncoder(handle_unknown="infrequent_if_exist",
                                   min_frequency=MIN_CATEGORY_COUNT,
-                                  sparse_output=False), CATEGORICAL_FEATURES),
+                                  sparse_output=False), keep(CATEGORICAL_FEATURES)),
         ],
         verbose_feature_names_out=False,
     )

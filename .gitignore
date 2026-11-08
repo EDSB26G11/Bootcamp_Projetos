@@ -27,7 +27,7 @@ __pycache__/
 data/processed/*.csv
 
 # Relatórios HTML do ydata-profiling (gerados por notebooks/00_profiling.ipynb).
-# reports/experiments.csv e reports/figures/ são versionados.
+# reports/experiments.csv, reports/experiments_v1.csv (histórico) e reports/figures/ são versionados.
 reports/*.html
 
 # Modelos treinados (gerados por src/models/train.py, save_model)
@@ -40,3 +40,9 @@ models/*
 # Notas internas locais (não partilhar)
 docs/status_apoio_ia.md
 docs/contributions.md
+
+# Previsões out-of-fold (geradas pelo notebook 04)
+reports/oof_*.csv
+
+# Avaliação interna do projeto (não entregar)
+docs/avaliacao_interna.md

@@ -1,5 +1,11 @@
 # Fase 2 — Modelação base: contexto
 
+> **Ponto a 6/11.** A fase 2 está quase fechada: baselines e candidatos corridos,
+> modelo v1 = HistGradientBoosting (D17), ablação feita (D18). Faltam o tuning
+> pequeno e a nota da T2.3. A fase 3 avançou com as regras de D19. Os números
+> atuais estão em `reports/experiments.csv`; a tabela "Números de referência"
+> abaixo foi atualizada. Critérios de sucesso em [problem_framing.md](problem_framing.md).
+
 Ponto de partida para a fase 2 do roadmap (T2.1–T2.4): o que já está pronto,
 o que esta fase tem de entregar, as regras a respeitar e os números de
 referência. As decisões que levaram até aqui estão em
@@ -48,7 +54,7 @@ mesma forma, e a escolha justificada do candidato a modelo v1.
 | T2.1 Baselines | Regra simples e regressão logística. São a fasquia: tudo o que vier depois tem de as bater | Tabela baseline | R2 |
 | T2.2 Modelos candidatos | Um gradient boosting (HistGradientBoosting, LightGBM ou XGBoost) e uma random forest, com tuning modesto | `notebooks/03_baselines_models.ipynb` | R2 |
 | T2.3 Hugging Face Hub | Ver se há modelos ou datasets tabulares úteis; ler model cards e licenças; decidir e justificar | Nota em `decisions.md` | R3 |
-| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `reports/experiments.csv` (via `src/models/train.py`, `run_cv`) | R2 |
+| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `reports/experiments.csv` (comparação atual) e `reports/experiments_v1.csv` (histórico), via `run_cv` em `src/models/train.py` | R2 |
 
 ## Regras
 
@@ -59,7 +65,7 @@ mesma forma, e a escolha justificada do candidato a modelo v1.
    `StratifiedKFold`: os folds de D13 garantem que nenhum doente está no
    treino e na validação ao mesmo tempo.
 3. **O pré-processamento vai dentro do pipeline.** Nada de `fit` no
-   conjunto todo antes da CV, nem SMOTE fora do fold (isso é na T3.1).
+   conjunto todo antes da CV, nem reamostragem fora do fold.
 4. **Métrica principal: PR-AUC** (`average_precision`). Reportar também
    ROC-AUC e recall@10% / recall@20% (a fração de readmissões apanhada se a
    equipa de follow-up só chegar a 10% ou 20% das altas). A accuracy não serve:
@@ -78,9 +84,15 @@ Médias nos 5 folds de CV do treino:
 | Modelo | PR-AUC | ROC-AUC | Recall@10% | Precisão@10% | Recall@20% |
 |---|---|---|---|---|---|
 | Ao acaso | 0,113 | 0,500 | 0,100 | 0,113 | 0,200 |
-| Regra: `number_inpatient` ≥ 1 | 0,150 | 0,592 | 0,148 | 0,168 | 0,299 |
-| Ordenar por `number_inpatient` | 0,183 | 0,611 | 0,210 | 0,238 | 0,347 |
+| Regra: `number_inpatient` ≥ 1 | 0,141 | 0,592 | 0,146 | 0,166 | 0,297 |
+| Ordenar por `number_inpatient` | 0,176 | 0,607 | 0,209 | 0,237 | 0,341 |
 | Regressão logística (sem tuning) | 0,210 | 0,664 | 0,229 | 0,260 | 0,385 |
+| Random forest (sem tuning) | 0,221 | 0,672 | 0,234 | 0,265 | 0,386 |
+| **HistGradientBoosting, modelo v1 (sem tuning)** | **0,234** | **0,677** | **0,247** | **0,280** | **0,400** |
+
+As regras com `number_inpatient` foram recalculadas a 6/11 com o
+`average_precision` do scikit-learn e empates desfeitos ao acaso; a versão
+anterior desta tabela (0,150 e 0,183) usava outro método nos empates.
 
 Como ler: com a regressão logística, chamar os 10% de altas com maior risco
 apanha 23% das readmissões em menos de 30 dias. Um em cada quatro doentes
@@ -105,15 +117,15 @@ notas). Isto tem de aparecer no relatório e no deck.
 - **Esquecer o registo.** Cada corrida que entra na comparação vai para
   `reports/experiments.csv` (via `src/models/train.py`, `run_cv`), incluindo as que correram mal.
 
-## Decisões que vão surgir
+## Decisões desta fase (estado a 6/11)
 
-Levar ao roadmap quando aparecerem:
-
-1. Qual o gradient boosting (HistGradientBoosting já vem com o scikit-learn;
-   LightGBM e XGBoost são dependências novas).
-2. Se `payer_code`, `max_glu_serum` e o indicador de registo incompleto (D5)
-   ficam. Testar retirando-os (ablação) na CV.
-3. Se o gradient boosting usa o pré-processamento comum (D16) ou categorias
-   nativas.
-4. Se se usa algo do Hugging Face Hub (T2.3).
-5. Qual o candidato a modelo v1 para o status report 3.
+1. Qual o gradient boosting: **HistGradientBoosting** (F2·1, D17).
+2. `payer_code`, `max_glu_serum` e o indicador de registo incompleto:
+   ablação feita; `payer_code` fica, o indicador não entra,
+   `max_glu_serum` por confirmar (F2·2, D18).
+3. Pré-processamento do gradient boosting: o comum de D16 (F2·3).
+4. Hugging Face Hub: em aberto no roadmap (F2·4). O Space
+   `murtaza65/diabetes-readmission-prediction-live` foi analisado e não serve
+   (sem licença, treinado com os nossos doentes de teste, fuga por doente).
+5. Candidato a modelo v1: em aberto no roadmap (F2·5); a recomendação é o
+   HistGradientBoosting.

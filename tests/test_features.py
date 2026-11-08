@@ -7,6 +7,7 @@ from src.features.build import (
     MED_COLS,
     build_features,
     icd9_group,
+    incomplete_record,
     model_frame,
 )
 
@@ -54,3 +55,10 @@ def test_model_frame_fills_missing_categories():
     x = model_frame(df)
     assert list(x.columns) == FEATURES
     assert (x[CATEGORICAL_FEATURES[:4]] == "Missing").all().all()
+
+
+def test_incomplete_record():
+    df = pd.DataFrame({"admission_type_id_desc": ["Emergency", "Desconhecido", "Urgent"],
+                       "discharge_disposition_id_desc": ["Home", "Home", "Home"],
+                       "admission_source_id_desc": ["Referral", "Referral", "Desconhecido"]})
+    assert incomplete_record(df).tolist() == [0, 1, 1]
