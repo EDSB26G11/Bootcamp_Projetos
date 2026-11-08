@@ -235,6 +235,39 @@ def risk_chart(out: dict):
     return fig
 
 
+def chart_notes(bundle: dict) -> str:
+    """Legenda do gráfico: como ler e os pressupostos principais, com os números do modelo gravado."""
+    n, n_all = bundle.get("n_eligible"), bundle.get("n_train")
+    num = lambda v: f"{v:,}".replace(",", " ")
+    elig = (f" ({num(n)} das {num(n_all)} altas de treino)" if n and n_all else "")
+    base = bundle.get("base_rate_eligible")
+    base_txt = f" ({pct(base, 1)})" if base else ""
+    cuts = " e ".join(f"{pct(bundle[key], 1)} para {k}%" for k, key in CAPACITIES.items() if key in bundle)
+    cuts_txt = f" O risco mínimo para entrar na lista é {cuts}." if cuts else ""
+    return f"""**Como ler**
+
+- **Em cima, qual o risco.** A barra escura é o risco estimado desta alta. A barra cinzenta é a média das
+  altas elegíveis do treino{base_txt}. As duas estão na mesma escala.
+- **Em baixo, que prioridade.** A faixa representa todas as altas elegíveis do treino, ordenadas do maior
+  risco (à esquerda) para o menor (à direita). O triângulo marca esta alta. As faixas verdes são as altas que
+  entram na lista: verde escuro com capacidade para 10% das altas, verde médio com capacidade para 20%.
+
+**Pressupostos principais**
+
+- **Capacidade.** A equipa contacta 10% ou 20% das altas elegíveis, começando pelas de maior risco. Os cortes
+  vêm das previsões out-of-fold do treino.{cuts_txt} A escolha entre 10% e 20% ainda está em aberto.
+- **Quem é elegível.** Só as altas para casa sem acompanhamento{elig}. As restantes já têm acompanhamento à
+  saída (outro hospital ou instituição, apoio domiciliário, cuidados paliativos): o modelo estima-lhes o risco,
+  mas não entram na lista (D21).
+- **O que conta como readmissão.** Um novo internamento em menos de 30 dias nos hospitais do dataset. Uma
+  readmissão noutro hospital não aparece nos dados.
+- **O risco vale para estes dados.** Nas previsões out-of-fold, o risco previsto e o observado diferem menos
+  de 1 pp em todos os decis. O dataset é dos EUA, de 1999 a 2008; noutro hospital ou noutro período, isto tem
+  de ser verificado outra vez.
+- **Campos não mostrados.** Ficam com o valor mais comum no treino.
+- **Não é causal.** O modelo não estima o efeito do follow-up. Uma pessoa revê cada caso antes do contacto."""
+
+
 CSS = f"""
 .gradio-container {{max-width: 1200px !important; width: 100% !important; margin: 0 auto !important;
                     padding: 24px 32px !important; color: {TEXT}; font-size: 15px;}}
@@ -251,6 +284,12 @@ CSS = f"""
 .result-msg h3 {{color: {TEAL_DARK} !important; font-size: 21px !important; line-height: 1.3; margin: 0 0 4px 0;}}
 .result-msg p {{font-size: 16px; color: {TEXT} !important;}}
 .footnote p {{color: {MUTED} !important; font-size: 13px !important;}}
+.stack {{gap: 16px !important; padding: 0 !important; background: transparent !important; border: none !important;}}
+.card-chart {{border-top: 4px solid {TEAL_MID} !important;}}
+.chart-notes {{border-top: 1px solid {CONTEXT}; padding-top: 10px; margin-top: 4px;}}
+.chart-notes p, .chart-notes li {{font-size: 14px !important; line-height: 1.45; color: {TEXT} !important;}}
+.chart-notes strong {{color: {TEAL_DARK};}}
+.chart-notes ul {{margin: 2px 0 10px 0;}}
 [data-testid='block-info'], label span {{color: {TEXT} !important; font-weight: 600 !important;}}
 """
 
@@ -326,19 +365,20 @@ def build_app(bundle: dict):
                     ins = _dropdown(gr, bundle, "insulin")
                 btn = gr.Button("Avaliar alta", variant="primary", size="lg")
 
-            with gr.Column(scale=7, elem_classes=["card", "card-result"]):
-                msg = gr.Markdown(elem_classes="result-msg")
-                chart = gr.Plot(show_label=False, container=False)
-                table = gr.Dataframe(interactive=False, show_label=False, wrap=True)
-                gr.Markdown(
-                    "Os campos que não aparecem ficam com o valor mais comum no treino. "
-                    "Risco estimado: em altas com este risco, é a fração que voltou em menos de 30 dias "
-                    "(nas previsões out-of-fold, previsto e observado coincidem por decis). "
-                    "Ficam fora da lista as altas para outro hospital ou instituição, internamento, "
-                    "apoio domiciliário ou cuidados paliativos: já têm acompanhamento (D21). "
-                    "Uma pessoa revê cada caso; "
-                    "o modelo não estima o efeito do follow-up nem é causal.",
-                    elem_classes="footnote")
+            with gr.Column(scale=7, elem_classes="stack"):
+                with gr.Column(elem_classes=["card", "card-result"]):
+                    msg = gr.Markdown(elem_classes="result-msg")
+                    table = gr.Dataframe(interactive=False, show_label=False, wrap=True)
+                    gr.Markdown(
+                        "Risco estimado: entre as altas com este risco, a fração que voltou em menos de 30 dias. "
+                        "Uma pessoa revê cada caso. O gráfico e os pressupostos estão no quadro abaixo.",
+                        elem_classes="footnote")
+
+                # 2.º quadro: o gráfico com a legenda e os pressupostos (IBCS: explicar o que se lê).
+                with gr.Column(elem_classes=["card", "card-chart"]):
+                    gr.Markdown("### Onde fica esta alta", elem_classes="group-head")
+                    chart = gr.Plot(show_label=False, container=False)
+                    gr.Markdown(chart_notes(bundle), elem_classes="chart-notes")
 
         fields = {"age_band": age, "time_in_hospital": days, "num_medications": meds, "number_diagnoses": diags,
                   "number_inpatient": inp, "number_emergency": em, "number_outpatient": out_,

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.app import INPUTS, describe, is_eligible, make_record, message, predict_risk, risk_percentile
+from src.app import INPUTS, chart_notes, describe, is_eligible, make_record, message, predict_risk, risk_percentile
 from src.features.build import CATEGORICAL_FEATURES, FEATURES
 from src.models.baselines import candidate_models
 from src.models.evaluate import predict_scores
@@ -100,3 +100,10 @@ def test_app_shows_estimated_risk_with_reference(saved):
     text = describe(out)
     assert "risco estimado de" in text and "média das altas elegíveis" in text
     assert "risco estimado de" in message(out)
+
+
+def test_chart_notes_explain_reading_and_assumptions(saved):
+    bundle = load_model(saved[2])
+    notes = chart_notes(bundle)
+    assert "Como ler" in notes and "Pressupostos principais" in notes
+    assert "10%" in notes and "20%" in notes and "D21" in notes
