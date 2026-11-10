@@ -1,0 +1,6 @@
+modelo,hardware,contexto (encontros),s por fold (previsão),ms por 1 000 previsões,memória de pico GPU (GB),"dados de doentes a enviar com o modelo (MB, CSV)",s por fold (treino + previsão)
+kumo_tabular_small ctx=10k,NVIDIA GeForce RTX 4050 Laptop GPU,10000,15.630266179994214,976.3912357413209,1.0459976196289062,1.8139705657958984,
+kumo_tabular_small ctx=30k,NVIDIA GeForce RTX 4050 Laptop GPU,30000,51.2034104800201,3198.5738858847403,1.4416999816894531,5.436544418334961,
+kumo_tabular_small ctx=55k,NVIDIA GeForce RTX 4050 Laptop GPU,55000,128.71204411999787,8040.382061693249,1.9416723251342773,9.963589668273926,
+HGB v1,"CPU (Intel64 Family 6 Model 154 Stepping 3, GenuineIntel)",0,,,,0.0,9.208191519998945
+logreg,"CPU (Intel64 Family 6 Model 154 Stepping 3, GenuineIntel)",0,,,,0.0,2.921496340003796

@@ -1,0 +1,16 @@
+# Ambiente à parte para o modelo desafiante Kumo Tabular (T2.3 / F2·4).
+# Não entra na app nem em models/: só para notebooks/07_kumo_challenger.ipynb.
+#
+# Local (Windows, GPU NVIDIA): instalar primeiro o torch com CUDA, depois este ficheiro:
+#   python -m venv .venv-kumo
+#   .venv-kumo\Scripts\python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
+#   .venv-kumo\Scripts\python -m pip install -r requirements-kumo.txt
+# Colab (T4): o torch já vem instalado; só este ficheiro.
+
+-r requirements.txt
+torch>=2.7
+
+# Código que corre o Kumo Tabular, fixado no mesmo commit do Lab W5_1
+# (no PyPI, "structured-data-models" é só um nome reservado vazio).
+# Os pesos (~110 MB, Apache-2.0) descarregam-se do Hugging Face Hub na 1.ª utilização.
+structured-data-models @ git+https://github.com/NVIDIA/structured-data-models.git@5d663369ff8ead4a78c910dbb8483d558e46627b
