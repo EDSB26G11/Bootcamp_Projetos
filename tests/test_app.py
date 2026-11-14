@@ -107,3 +107,15 @@ def test_chart_notes_explain_reading_and_assumptions(saved):
     notes = chart_notes(bundle)
     assert "Como ler" in notes and "Pressupostos principais" in notes
     assert "10%" in notes and "20%" in notes and "D21" in notes
+
+
+def test_shown_percentile_matches_action_at_the_cut(saved):
+    """Logo abaixo do corte de 10% a alta não pode aparecer como P90 (onde a lista começa)."""
+    from src.app import _shown_percentile, _top
+
+    bundle = load_model(saved[2])
+    t = bundle["threshold_k10"]
+    below = {"percentile": risk_percentile(bundle, t - 1e-9)}
+    above = {"percentile": risk_percentile(bundle, t + 1e-9)}
+    assert _shown_percentile(below) < 90 <= _shown_percentile(above)
+    assert _top(above) <= 10 < _top(below)

@@ -38,7 +38,7 @@ TEXT = "#1F2A30"         # texto normal (≈ 15:1)
 MUTED = "#4F5D66"        # rodapés e rótulos secundários (≈ 6,9:1)
 # Escala de prioridade: cores de risco, só nas altas que entram na lista.
 RISK_TOP = "#7A1F2B"     # vermelho-grená: os 10% de maior risco (texto ≈ 10:1)
-RISK_NEXT = "#F2A65A"    # laranja tranquilo: dos 10% aos 20% (só como área)
+RISK_NEXT = "#F2A65A"    # laranja: dos 10% aos 20% (só como área)
 RISK_NEXT_TEXT = "#9A4E0B"  # o mesmo laranja, escurecido para texto (≈ 5,9:1)
 
 # Campos mostrados na app; os outros vêm de bundle["defaults"].
@@ -125,8 +125,16 @@ def predict_risk(bundle: dict, **values) -> dict:
             **{f"follow_up_k{k}": eligible and score >= bundle[key] for k, key in CAPACITIES.items()}}
 
 
+def _shown_percentile(out: dict) -> int:
+    """Percentil mostrado ao utilizador, arredondado para baixo: assim bate
+    sempre certo com a ação. Ex.: 89,9 (logo abaixo do corte de 10%, sem
+    follow-up) aparece como P89 e não como P90, que é onde a lista começa."""
+    return int(np.floor(out["percentile"]))
+
+
 def _top(out: dict) -> float:
-    return max(out["top_pct"], 1)
+    """'Nos X% com maior risco', coerente com o percentil mostrado (X = 100 − P)."""
+    return max(100 - _shown_percentile(out), 1)
 
 
 def _risk_text(out: dict) -> str:
@@ -200,7 +208,7 @@ def position_scale(out: dict):
     fig = Figure(figsize=(8, 1.95))
     fig.patch.set_alpha(0)
     x = min(max(out["top_pct"], 0.5), 99.5)  # esquerda = maior risco
-    p = round(out["percentile"])
+    p = _shown_percentile(out)
     ax = fig.add_axes([0.015, 0.0, 0.97, 1.0])
     ax.set_xlim(0, 100)
     ax.set_ylim(-1.75, 1.75)
@@ -269,7 +277,7 @@ def chart_notes(bundle: dict) -> str:
   altas elegíveis do treino{base_txt}. As duas estão na mesma escala.
 - **Que prioridade (escala do quadro de cima).** A escala representa todas as altas elegíveis do treino,
   ordenadas do maior risco (P100, à esquerda) para o menor (P0, à direita). O triângulo marca o percentil desta
-  alta: no percentil 85, 85% das altas elegíveis têm risco menor. A grená, os 10% de maior risco (P90 a P100):
+  alta: no percentil 85, 85% das altas elegíveis têm risco igual ou menor. A grená, os 10% de maior risco (P90 a P100):
   follow-up. A laranja, dos 10% aos 20% (P80 a P90): follow-up se a equipa tiver capacidade.
 
 **Pressupostos principais**
