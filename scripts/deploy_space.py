@@ -32,7 +32,24 @@ def main(space: str) -> None:
         raise SystemExit(f"Falta models/v1/{missing}: correr primeiro o notebooks/06_deployment.ipynb.")
 
     api = HfApi()
-    print(f"A publicar em https://huggingface.co/spaces/{space} como {api.whoami()['name']}…")
+    try:
+        user = api.whoami()["name"]
+    except Exception as e:
+        raise SystemExit(f"Sem autenticação no Hugging Face ({e.__class__.__name__}). No GitHub: confirmar o secret TAFS "
+                         "(Settings → Secrets and variables → Actions) com um token Write. "
+                         "À mão: `hf auth login`.")
+    if not api.repo_exists(space, repo_type="space"):
+        raise SystemExit(f"O Space {space} não existe ou a conta {user} não o vê.")
+    print(f"A publicar em https://huggingface.co/spaces/{space} como {user}…")
+    try:
+        _upload(api, space)
+    except Exception as e:
+        raise SystemExit(f"O envio falhou ({e}). Se for 401/403: a conta {user} não tem escrita no Space "
+                         "(o token tem de ser Write e de uma conta com acesso ao Space).")
+    print("Feito. O Space reconstrói-se sozinho; acompanhar o separador Logs.")
+
+
+def _upload(api: HfApi, space: str) -> None:
     api.upload_folder(
         repo_id=space, repo_type="space", folder_path=ROOT,
         allow_patterns=["app.py", "src/**/*.py", "models/v1/*"],
@@ -43,7 +60,6 @@ def main(space: str) -> None:
                     path_in_repo="requirements.txt", commit_message="Dependências da app")
     api.upload_file(repo_id=space, repo_type="space", path_or_fileobj=ROOT / "docs" / "space_README.md",
                     path_in_repo="README.md", commit_message="README do Space")
-    print("Feito. O Space reconstrói-se sozinho; acompanhar o separador Logs.")
 
 
 if __name__ == "__main__":

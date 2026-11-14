@@ -4,7 +4,7 @@
 #    data/processed/ saltavam e o CI ficava verde sem testar quase nada.
 # 2. deploy: só num push para a main (ou à mão, em Actions → Run workflow), e só
 #    se os testes passarem: envia a app e o modelo para o Hugging Face Spaces.
-#    Precisa do secret HF_TOKEN (token Write do Hugging Face) em
+#    Precisa do secret TAFS (token Write do Hugging Face) em
 #    Settings → Secrets and variables → Actions. O Space muda-se com a variável
 #    HF_SPACE (no mesmo sítio, separador Variables), sem mexer no código.
 
@@ -20,8 +20,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
@@ -38,13 +38,13 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-space
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - name: Instalar o cliente do Hugging Face
         run: pip install huggingface_hub==2.4.0
       - name: Enviar para o Space
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_TOKEN: ${{ secrets.TAFS }}  # secret do repositório com o token Write do Hugging Face
         run: python scripts/deploy_space.py --space "${{ vars.HF_SPACE || 'SandraLurdes/Bootcampprojectodiabetes' }}"
