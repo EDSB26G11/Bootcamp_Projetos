@@ -8,3 +8,6 @@ numpy==2.5.3
 scikit-learn==1.9.1
 matplotlib==3.11.2
 skops==0.16.0
+# Pacote do ZeroGPU (o único hardware disponível no Space; ver app.py). Sem versão
+# fixa: a plataforma traz a sua e não mexe no modelo.
+spaces
