@@ -1,0 +1,10 @@
+# Dependências da app no Hugging Face Spaces (sobe como requirements.txt do Space).
+# Só o que a app precisa para correr; o gradio vem do sdk_version do README do Space
+# (6.31.0, a mesma versão do requirements.txt).
+# As versões têm de ser as mesmas com que o modelo foi gravado (models/v1/config.json).
+pandas==3.0.6
+scipy==1.18.1
+numpy==2.5.3
+scikit-learn==1.9.1
+matplotlib==3.11.2
+skops==0.16.0

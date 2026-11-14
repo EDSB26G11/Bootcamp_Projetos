@@ -117,6 +117,7 @@ Todos os comandos correm a partir da raiz do repositório:
 - Testes: `python -m pytest tests/ -v`
 - Ordem dos notebooks: `00` e `01` (exploração; o `00` usa o `.venv-profiling`) → `02` (verificação da preparação) → `03` (baselines e candidatos) → `04` (previsões out-of-fold, ablação, threshold) → `05` e `06` (leem as OOF do `04`) → `07` (opcional: Kumo Tabular, no `.venv-kumo` com GPU; os resultados já estão em `reports/kumo_*.csv`) → `Projeto_Final`
 - App (depois de gravar o modelo no `06_deployment`): `python -m src.app`. Mostra a posição de risco da alta e a ação para 10% e 20% de capacidade. As altas para outra instituição, internamento, apoio domiciliário ou paliativos aparecem como "fora da lista" (D21)
+- Publicar a app no Hugging Face Spaces ([SandraLurdes/Bootcampprojectodiabetes](https://huggingface.co/spaces/SandraLurdes/Bootcampprojectodiabetes)): depois de gravar o modelo, `hf auth login` com um token de escrita no Space e `python scripts/deploy_space.py`. Envia `app.py`, `src/`, `models/v1/`, `requirements-space.txt` (como `requirements.txt`) e `docs/space_README.md` (como `README.md`); os dados não vão para o Space
 - Notebooks: `jupyter notebook` (ou abrir diretamente no VS Code)
 - Profiling automático (`notebooks/00_profiling.ipynb`): o `ydata-profiling` ainda exige pandas < 3, por isso usa um ambiente próprio:
   ```
