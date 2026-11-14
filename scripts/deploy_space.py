@@ -52,7 +52,8 @@ def main(space: str) -> None:
 def _upload(api: HfApi, space: str) -> None:
     api.upload_folder(
         repo_id=space, repo_type="space", folder_path=ROOT,
-        allow_patterns=["app.py", "src/**/*.py", "models/v1/*"],
+        # "src/*.py" e "src/**/*.py": o segundo só apanha ficheiros dentro de subpastas de src/.
+        allow_patterns=["app.py", "src/*.py", "src/**/*.py", "models/v1/*"],
         ignore_patterns=["**/__pycache__/**", "src/models/kumo.py", "src/data_preparation.py"],
         commit_message="Publica a app e o modelo v1",
     )
