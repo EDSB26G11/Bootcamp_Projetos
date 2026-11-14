@@ -5,7 +5,8 @@ src/, o modelo de models/v1/ (que não está no Git), requirements-space.txt
 (como requirements.txt) e o README do Space (docs/space_README.md, que tem a
 configuração do Space no cabeçalho). Os dados não vão para o Space.
 
-Antes de correr:
+Normalmente corre sozinho no GitHub Actions, em cada push para a main, depois
+dos testes (.github/workflows/ci.yml, com o secret HF_TOKEN). Para correr à mão:
 1. gravar o modelo (notebooks/06_deployment.ipynb), para existir models/v1/;
 2. autenticar com um token com permissão de escrita no Space:
    `hf auth login` (ou a variável de ambiente HF_TOKEN).

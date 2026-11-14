@@ -1,0 +1,50 @@
+# CI e deploy (T4.4, T4.3).
+# 1. test: em cada push e pull request, gera os dados processados a partir de
+#    data/raw/ e corre o pytest. Sem este passo, os testes que precisam de
+#    data/processed/ saltavam e o CI ficava verde sem testar quase nada.
+# 2. deploy: só num push para a main (ou à mão, em Actions → Run workflow), e só
+#    se os testes passarem: envia a app e o modelo para o Hugging Face Spaces.
+#    Precisa do secret HF_TOKEN (token Write do Hugging Face) em
+#    Settings → Secrets and variables → Actions. O Space muda-se com a variável
+#    HF_SPACE (no mesmo sítio, separador Variables), sem mexer no código.
+
+name: CI e deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+      - name: Gerar os dados processados
+        run: python -m src.data_preparation
+      - name: Testes
+        run: python -m pytest tests/ -v -rs
+
+  deploy:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    concurrency: deploy-space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Instalar o cliente do Hugging Face
+        run: pip install huggingface_hub==2.4.0
+      - name: Enviar para o Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/deploy_space.py --space "${{ vars.HF_SPACE || 'SandraLurdes/Bootcampprojectodiabetes' }}"

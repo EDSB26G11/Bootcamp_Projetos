@@ -31,9 +31,12 @@ data/processed/*.csv
 # reports/experiments.csv, reports/experiments_v1.csv (histórico) e reports/figures/ são versionados.
 reports/*.html
 
-# Modelos treinados (gerados por src/models/train.py, save_model)
+# Modelos treinados (gerados por src/models/train.py, save_model).
+# O modelo v1 é versionado (3 MB, sem dados de doentes): o GitHub Actions
+# envia-o para o Hugging Face Spaces (.github/workflows/ci.yml).
 models/*
 !models/.gitkeep
+!models/v1/
 
 
 # VS Code workspace files
