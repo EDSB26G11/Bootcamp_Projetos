@@ -98,8 +98,9 @@ def test_app_shows_estimated_risk_with_reference(saved):
     out = predict_risk(bundle, number_inpatient=4, number_emergency=0, number_outpatient=0)
     assert 0 <= out["risk"] <= 1 and out["base_rate"] == pytest.approx(bundle["base_rate_eligible"])
     text = describe(out)
-    assert "risco estimado de" in text and "média das altas elegíveis" in text
-    assert "risco estimado de" in message(out)
+    assert "Risco estimado de readmissão" in text and "média de" in text and "Em cada 100 doentes" in text
+    assert "Risco estimado de readmissão" in message(out)
+    assert "elegíveis" not in text  # jargão do projeto (D21): na app diz-se "que podem receber follow-up"
 
 
 def test_chart_notes_explain_reading_and_assumptions(saved):

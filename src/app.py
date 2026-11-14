@@ -137,12 +137,33 @@ def _top(out: dict) -> float:
     return max(100 - _shown_percentile(out), 1)
 
 
-def _risk_text(out: dict) -> str:
-    """'risco estimado de 23% (média das altas elegíveis: 9,6%)'."""
+def _risk_text(out: dict, bold: bool = False) -> str:
+    """O risco em linguagem simples, para quem não é técnico:
+
+    'Risco estimado de readmissão em menos de 30 dias: 16%, acima da média de
+    9,6% das altas que podem receber follow-up. Em cada 100 doentes com este
+    perfil, cerca de 16 voltam a ser internados nesse prazo.'
+
+    A 2.ª frase é fiel ao modelo porque o risco está calibrado (D22): nas
+    previsões out-of-fold, o previsto bate certo com o observado por decis.
+    """
     if "risk" not in out:
         return ""
-    ref = f" (média das altas elegíveis: {pct(out['base_rate'], 1)})" if out.get("base_rate") else ""
-    return f"risco estimado de {pct(out['risk'], 0)}{ref}"
+    risk, base = out["risk"], out.get("base_rate")
+    shown = "menos de 1%" if risk < 0.005 else pct(risk, 0)
+    value = f"**{shown}**" if bold else shown
+    text = f"Risco estimado de readmissão em menos de 30 dias: {value}"
+    if base:
+        side = "próximo da" if abs(risk - base) < 0.005 else "acima da" if risk > base else "abaixo da"
+        text += f", {side} média de {pct(base, 1)} das altas que podem receber follow-up"
+    n = round(100 * risk)
+    if n < 1:
+        count = "menos de 1 volta a ser internado"
+    elif n == 1:
+        count = "cerca de 1 volta a ser internado"
+    else:
+        count = f"cerca de {n} voltam a ser internados"
+    return text + f". Em cada 100 doentes com este perfil, {count} nesse prazo."
 
 
 NOT_ELIGIBLE = "fora da lista (já tem acompanhamento à saída)"
@@ -156,7 +177,7 @@ def _action(out: dict, k: int) -> str:
 
 def describe(out: dict) -> str:
     risk = _risk_text(out)
-    lines = ([f"Readmissão em menos de 30 dias: {risk}."] if risk else [])
+    lines = ([risk] if risk else [])
     lines += [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias."]
     if not out.get("eligible", True):
         return "\n".join(lines + ["Fora da lista de follow-up: o destino da alta já tem acompanhamento."])
@@ -169,8 +190,7 @@ def message(out: dict) -> str:
     A posição na lista está na escala logo abaixo, em percentil."""
     k_in = [k for k in CAPACITIES if out[f"follow_up_k{k}"]]
     top = pct(_top(out) / 100, 0)
-    risk = _risk_text(out)
-    risk_line = f"Readmissão em menos de 30 dias: **{risk}**." if risk else ""
+    risk_line = _risk_text(out, bold=True)
     if not out.get("eligible", True):
         return f"### Fora da lista de follow-up: o destino da alta já tem acompanhamento\n{risk_line}"
     if k_in:
