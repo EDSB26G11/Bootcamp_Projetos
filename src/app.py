@@ -30,12 +30,16 @@ from src.viz import pct
 # significado fixo: escuro = esta alta, médio/claro = quem cabe no follow-up,
 # cinzento = restantes altas. Contraste do texto sobre branco ≥ 4,5:1 (WCAG AA).
 TEAL_DARK = "#00524D"    # títulos, esta alta (≈ 9:1)
-TEAL = "#00857C"         # botão, follow-up com 10% (≈ 4,6:1)
+TEAL = "#02ACA0"         # botão, follow-up com 10% (≈ 4,6:1)
 TEAL_MID = "#5FB8AF"     # follow-up com 20%
 TEAL_LIGHT = "#E6F4F2"   # fundos de cartão
 CONTEXT = "#DDE3E5"      # restantes altas
 TEXT = "#1F2A30"         # texto normal (≈ 15:1)
 MUTED = "#4F5D66"        # rodapés e rótulos secundários (≈ 6,9:1)
+# Escala de prioridade: cores de risco, só nas altas que entram na lista.
+RISK_TOP = "#7A1F2B"     # vermelho-grená: os 10% de maior risco (texto ≈ 10:1)
+RISK_NEXT = "#F2A65A"    # laranja tranquilo: dos 10% aos 20% (só como área)
+RISK_NEXT_TEXT = "#9A4E0B"  # o mesmo laranja, escurecido para texto (≈ 5,9:1)
 
 # Campos mostrados na app; os outros vêm de bundle["defaults"].
 NUMERIC_INPUTS = ["age_band", "time_in_hospital", "num_medications", "number_diagnoses",
@@ -153,46 +157,85 @@ def describe(out: dict) -> str:
 
 
 def message(out: dict) -> str:
-    """Mensagem IBCS: a conclusão primeiro, numa frase; o risco e a posição a seguir."""
+    """Mensagem IBCS: a conclusão primeiro, numa frase; o risco estimado a seguir.
+    A posição na lista está na escala logo abaixo, em percentil."""
     k_in = [k for k in CAPACITIES if out[f"follow_up_k{k}"]]
     top = pct(_top(out) / 100, 0)
     risk = _risk_text(out)
-    risk_line = f"Readmissão em menos de 30 dias: **{risk}**. " if risk else ""
+    risk_line = f"Readmissão em menos de 30 dias: **{risk}**." if risk else ""
     if not out.get("eligible", True):
-        return ("### Fora da lista de follow-up: o destino da alta já tem acompanhamento\n"
-                f"{risk_line}Está nos {top} com maior risco. O doente continua internado, vai para outra "
-                "instituição ou sai com apoio domiciliário ou paliativo; a capacidade da equipa fica para quem "
-                "volta para casa sem acompanhamento.")
+        return f"### Fora da lista de follow-up: o destino da alta já tem acompanhamento\n{risk_line}"
     if k_in:
-        return (f"### Propor follow-up: esta alta está nos {top} com maior risco de readmissão em menos de 30 dias\n"
-                f"{risk_line}Entra na lista com capacidade para {min(k_in)}% das altas elegíveis ou mais.")
+        head = "Propor follow-up" if min(k_in) == min(CAPACITIES) else "Follow-up, se houver capacidade na equipa"
+        return f"### {head}: esta alta está nos {top} com maior risco de readmissão em menos de 30 dias\n{risk_line}"
     return (f"### Sem follow-up: esta alta não está nas {max(CAPACITIES)}% com maior risco de readmissão "
-            f"em menos de 30 dias\n{risk_line}Fica nos {top} com maior risco; não entra na lista com capacidade até "
-            f"{max(CAPACITIES)}% das altas elegíveis.")
+            f"em menos de 30 dias\n{risk_line}")
+
+
+def _suggested_action(out: dict, k: int) -> str:
+    """Ação sugerida por capacidade: nos 10% de maior risco, follow-up; dos 10%
+    aos 20%, follow-up se a equipa tiver capacidade para chegar lá."""
+    if not out.get("eligible", True):
+        return NOT_ELIGIBLE.capitalize()
+    if not out[f"follow_up_k{k}"]:
+        return "Sem follow-up"
+    if out[f"follow_up_k{min(CAPACITIES)}"]:
+        return "Follow-up"
+    return "Follow-up, se houver capacidade na equipa"
 
 
 def action_table(out: dict) -> pd.DataFrame:
     return pd.DataFrame({
-        "Capacidade da equipa (contacta as altas elegíveis de maior risco)": [f"{k}% das altas" for k in CAPACITIES],
-        "Ação para esta alta": [_action(out, k).capitalize() for k in CAPACITIES],
+        "Capacidade da equipa": [f"{k}% das altas" for k in CAPACITIES],
+        "Ação sugerida": [_suggested_action(out, k) for k in CAPACITIES],
     })
 
 
-def risk_chart(out: dict):
-    """Duas partes, como as duas partes da pergunta:
-
-    1. qual o risco: barra do risco estimado desta alta contra a média das
-       altas elegíveis (mesma escala, rótulos diretos);
-    2. que prioridade: posição da alta na ordenação das altas elegíveis, com
-       os cortes de capacidade (esquerda = maior risco).
-    """
+def position_scale(out: dict):
+    """Que prioridade: a escala das altas elegíveis, do maior para o menor
+    risco, em percentil de risco, com a alta marcada e as faixas da lista
+    (grená: os 10% de maior risco; laranja: dos 10% aos 20%)."""
     from matplotlib.figure import Figure  # sem pyplot: não acumula figuras no servidor
 
-    fig = Figure(figsize=(8, 3.9))
+    fig = Figure(figsize=(8, 1.95))
+    fig.patch.set_alpha(0)
+    x = min(max(out["top_pct"], 0.5), 99.5)  # esquerda = maior risco
+    p = round(out["percentile"])
+    ax = fig.add_axes([0.015, 0.0, 0.97, 1.0])
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-1.75, 1.75)
+    ax.axis("off")
+    ax.text(0, 1.7, "Percentil de risco entre as altas elegíveis (P100 = maior risco)", fontsize=10,
+            color=MUTED, va="top")
+    ax.barh(0, 100, color=CONTEXT, height=0.62)
+    ax.barh(0, 20, color=RISK_NEXT, height=0.62)
+    ax.barh(0, 10, color=RISK_TOP, height=0.62)
+    for k in CAPACITIES:
+        ax.plot([k, k], [-0.31, 0.31], color="white", lw=2)
+    for xt, t, ha, c in [(0, "P100", "left", MUTED), (10, "P90", "center", RISK_TOP),
+                         (20, "P80", "center", RISK_NEXT_TEXT), (100, "P0", "right", MUTED)]:
+        ax.text(xt, -0.45, t, fontsize=9.5, color=c, ha=ha, va="top")
+    ax.text(0, -1.1, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
+    ax.text(100, -1.1, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
+    ax.text(24, -1.1, "■", fontsize=11, color=RISK_TOP, ha="left", va="top")
+    ax.text(26.5, -1.1, "follow-up (10% de maior risco)", fontsize=9.5, color=TEXT, ha="left", va="top")
+    ax.text(55, -1.1, "■", fontsize=11, color=RISK_NEXT, ha="left", va="top")
+    ax.text(57.5, -1.1, "se houver capacidade (10–20%)", fontsize=9.5, color=TEXT, ha="left", va="top")
+    ax.plot(x, 0.55, marker="v", color=TEXT, markersize=12)
+    ax.text(x + (1.2 if x < 60 else -1.2), 0.85, f"esta alta: percentil {p}", fontsize=11, fontweight="bold",
+            color=TEXT, ha="left" if x < 60 else "right", va="center")
+    return fig
+
+
+def risk_chart(out: dict):
+    """Qual o risco: barra do risco estimado desta alta contra a média das
+    altas elegíveis (mesma escala, rótulos diretos)."""
+    from matplotlib.figure import Figure  # sem pyplot: não acumula figuras no servidor
+
+    fig = Figure(figsize=(8, 1.6))
     fig.patch.set_alpha(0)
 
-    # 1. Risco estimado contra a média
-    ax1 = fig.add_axes([0.015, 0.60, 0.97, 0.38])
+    ax1 = fig.add_axes([0.015, 0.02, 0.97, 0.96])
     ax1.axis("off")
     risk, base = out.get("risk"), out.get("base_rate")
     ax1.text(0, 1.0, "Risco estimado de readmissão em menos de 30 dias, em %", fontsize=10, color=MUTED,
@@ -208,30 +251,6 @@ def risk_chart(out: dict):
                      fontweight="bold" if i == 0 else None, color=TEAL_DARK if i == 0 else MUTED, va="center")
         ax1.set_xlim(0, 1)
         ax1.set_ylim(-len(rows) + 0.3, 1.1)
-
-    # 2. Posição na lista
-    top = min(max(out["top_pct"], 0.5), 99.5)
-    ax = fig.add_axes([0.015, 0.0, 0.97, 0.56])
-    ax.set_xlim(0, 100)
-    ax.set_ylim(-1.7, 1.6)
-    ax.axis("off")
-    ax.text(0, 1.55, "Altas elegíveis para follow-up, ordenadas pelo risco, em % das altas", fontsize=10,
-            color=MUTED, va="top")
-    ax.barh(0, 100, color=CONTEXT, height=0.62)
-    ax.barh(0, 20, color=TEAL_MID, height=0.62)
-    ax.barh(0, 10, color=TEAL, height=0.62)
-    for k in CAPACITIES:
-        ax.plot([k, k], [-0.31, 0.31], color="white", lw=2)
-    for x, t, ha, c in [(0, "0%", "left", MUTED), (10, "10%", "center", TEAL_DARK),
-                        (20, "20%", "center", TEAL_DARK), (100, "100%", "right", MUTED)]:
-        ax.text(x, -0.45, t, fontsize=9.5, color=c, ha=ha, va="top")
-    ax.text(0, -1.05, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
-    ax.text(100, -1.05, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
-    ax.text(22, -1.05, "a verde: entram na lista (até 10% ou até 20% das elegíveis)",
-            fontsize=9.5, color=TEAL_DARK, ha="left", va="top")
-    ax.plot(top, 0.55, marker="v", color=TEAL_DARK, markersize=12)
-    ax.text(top + (1.2 if top < 60 else -1.2), 0.78, f"esta alta: {pct(_top(out) / 100, 0)} com maior risco",
-            fontsize=11, fontweight="bold", color=TEAL_DARK, ha="left" if top < 60 else "right", va="center")
     return fig
 
 
@@ -246,16 +265,17 @@ def chart_notes(bundle: dict) -> str:
     cuts_txt = f" O risco mínimo para entrar na lista é {cuts}." if cuts else ""
     return f"""**Como ler**
 
-- **Em cima, qual o risco.** A barra escura é o risco estimado desta alta. A barra cinzenta é a média das
+- **Qual o risco (este quadro).** A barra escura é o risco estimado desta alta. A barra cinzenta é a média das
   altas elegíveis do treino{base_txt}. As duas estão na mesma escala.
-- **Em baixo, que prioridade.** A faixa representa todas as altas elegíveis do treino, ordenadas do maior
-  risco (à esquerda) para o menor (à direita). O triângulo marca esta alta. As faixas verdes são as altas que
-  entram na lista: verde escuro com capacidade para 10% das altas, verde médio com capacidade para 20%.
+- **Que prioridade (escala do quadro de cima).** A escala representa todas as altas elegíveis do treino,
+  ordenadas do maior risco (P100, à esquerda) para o menor (P0, à direita). O triângulo marca o percentil desta
+  alta: no percentil 85, 85% das altas elegíveis têm risco menor. A grená, os 10% de maior risco (P90 a P100):
+  follow-up. A laranja, dos 10% aos 20% (P80 a P90): follow-up se a equipa tiver capacidade.
 
 **Pressupostos principais**
 
 - **Capacidade.** A equipa contacta 10% ou 20% das altas elegíveis, começando pelas de maior risco. Os cortes
-  vêm das previsões out-of-fold do treino.{cuts_txt} A escolha entre 10% e 20% ainda está em aberto.
+  vêm das previsões out-of-fold do treino.{cuts_txt}
 - **Quem é elegível.** Só as altas para casa sem acompanhamento{elig}. As restantes já têm acompanhamento à
   saída (outro hospital ou instituição, apoio domiciliário, cuidados paliativos): o modelo estima-lhes o risco,
   mas não entram na lista (D21).
@@ -366,17 +386,15 @@ def build_app(bundle: dict):
                 btn = gr.Button("Avaliar alta", variant="primary", size="lg")
 
             with gr.Column(scale=7, elem_classes="stack"):
+                # 1.º quadro: conclusão, escala de prioridade (percentil) e ação por capacidade.
                 with gr.Column(elem_classes=["card", "card-result"]):
                     msg = gr.Markdown(elem_classes="result-msg")
+                    scale = gr.Plot(show_label=False, container=False)
                     table = gr.Dataframe(interactive=False, show_label=False, wrap=True)
-                    gr.Markdown(
-                        "Risco estimado: entre as altas com este risco, a fração que voltou em menos de 30 dias. "
-                        "Uma pessoa revê cada caso. O gráfico e os pressupostos estão no quadro abaixo.",
-                        elem_classes="footnote")
 
-                # 2.º quadro: o gráfico com a legenda e os pressupostos (IBCS: explicar o que se lê).
+                # 2.º quadro: o risco face à média, com a legenda e os pressupostos (IBCS: explicar o que se lê).
                 with gr.Column(elem_classes=["card", "card-chart"]):
-                    gr.Markdown("### Onde fica esta alta", elem_classes="group-head")
+                    gr.Markdown("### Risco desta alta face à média", elem_classes="group-head")
                     chart = gr.Plot(show_label=False, container=False)
                     gr.Markdown(chart_notes(bundle), elem_classes="chart-notes")
 
@@ -388,10 +406,11 @@ def build_app(bundle: dict):
 
         def _predict(*args):
             res = predict_risk(bundle, **dict(zip(INPUTS, args)))
-            return message(res), risk_chart(res), action_table(res)
+            return message(res), position_scale(res), action_table(res), risk_chart(res)
 
-        btn.click(_predict, components, [msg, chart, table])
-        demo.load(_predict, components, [msg, chart, table])
+        outputs = [msg, scale, table, chart]
+        btn.click(_predict, components, outputs)
+        demo.load(_predict, components, outputs)
     return demo
 
 

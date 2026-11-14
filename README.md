@@ -75,7 +75,7 @@ Os notebooks em `notebooks/` são as bancadas de trabalho, um por fase:
 Documentação em `docs/`:
 
 - [problem_framing.md](docs/problem_framing.md) — a decisão que o modelo apoia, os limites e os critérios de sucesso a 3 níveis
-- [decisions.md](docs/decisions.md) — registo das decisões (D1–D23) e pressupostos, com a evidência de cada uma
+- [decisions.md](docs/decisions.md) — registo das decisões (D1–D24) e pressupostos, com a evidência de cada uma
 - [data_preparation.md](docs/data_preparation.md) — o que faz `src/data_preparation.py` e como correr (leitura e validação dos dados, descodificação dos IDs)
 - [eda_summary.md](docs/eda_summary.md) — resumo dos achados de `notebooks/01_eda.ipynb`
 - [dicionario_variaveis.md](docs/dicionario_variaveis.md) — todas as variáveis: significado, exclusão, ajuste e variáveis derivadas
