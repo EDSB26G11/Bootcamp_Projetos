@@ -33,6 +33,7 @@ from src.pipeline import ModelData
 EXPERIMENTS = "reports/experiments.csv"
 HISTORY = "reports/experiments_v1.csv"
 MODEL_DIR = "models/v1"
+MODEL_CARD = Path(__file__).resolve().parents[2] / "docs" / "model_card.md"  # fonte do README.md do modelo
 
 # Tipos que o skops 0.16 não confia por defeito num pipeline
 # build_preprocessor() + HistGradientBoostingClassifier (saída de
@@ -101,7 +102,7 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
       a app), destinos de alta fora da lista de follow-up (D21), thresholds a
       10% e 20% de capacidade e quantis das previsões OOF (para o percentil de
       risco), ambos calculados só nas altas elegíveis; versões e seed;
-    - README.md: o model card (só se ainda não existir, para não o apagar).
+    - README.md: o model card, copiado de docs/model_card.md.
     """
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -132,12 +133,14 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
     }
     sio.dump(model, path / "model.skops")
     (path / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+    # O model card escreve-se em docs/model_card.md (versionado) e copia-se
+    # para junto do modelo, que não é versionado.
     card = path / "README.md"
-    if not card.exists():
+    if MODEL_CARD.exists():
+        card.write_text(MODEL_CARD.read_text(encoding="utf-8"), encoding="utf-8")
+    elif not card.exists():
         card.write_text("# Model card: readmissão a 30 dias (diabetes)\n\n"
-                        "_A preencher: dados, uso previsto, métricas (OOF e teste), thresholds por "
-                        "capacidade, limites (não causal; sem explicação por doente; labels incompletos)._\n",
-                        encoding="utf-8")
+                        "_A preencher: ver docs/model_card.md._\n", encoding="utf-8")
     return path
 
 

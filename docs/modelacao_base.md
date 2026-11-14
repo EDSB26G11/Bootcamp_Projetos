@@ -124,8 +124,8 @@ notas). Isto tem de aparecer no relatório e no deck.
    ablação feita; `payer_code` fica, o indicador não entra,
    `max_glu_serum` por confirmar (F2·2, D18).
 3. Pré-processamento do gradient boosting: o comum de D16 (F2·3).
-4. Hugging Face Hub: em aberto no roadmap (F2·4). O Space
+4. Hugging Face Hub: só para publicar (F2·4 fechada a 8/11, D23): o Kumo Tabular fica como
+   desafiante e empata com o v1 ([anexo_kumo_tabular.md](anexo_kumo_tabular.md)). O Space
    `murtaza65/diabetes-readmission-prediction-live` foi analisado e não serve
    (sem licença, treinado com os nossos doentes de teste, fuga por doente).
-5. Candidato a modelo v1: em aberto no roadmap (F2·5); a recomendação é o
-   HistGradientBoosting.
+5. Candidato a modelo v1: HistGradientBoosting (F2·5 fechada no roadmap a 10/11, D17).
