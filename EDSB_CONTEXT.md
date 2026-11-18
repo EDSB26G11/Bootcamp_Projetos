@@ -4,14 +4,16 @@
 > **Enterprise Data Science Bootcamp (EDSB), NOVA IMS, 2026-27** — *Diabetes: Hospital Readmission*, group **G11**.
 > Reference it from `CLAUDE.md` with `@EDSB_CONTEXT.md`.
 >
-> **State as of 11 Nov 2026**, branch `feature/t2-3-kumo-challenger` (uncommitted changes at the time).
+> **State as of 18 Nov 2026** (W11), branch `main` (last commit 14 Nov; all feature branches merged via PR #1–#7).
 > **Source of truth for decisions is `docs/decisions.md`** — if it disagrees with this file, `decisions.md` wins
 > and this file must be updated.
 >
 > **Class sources read:** W1 syllabus slides; W4 and W5 Hugging Face slides; class summaries of 30 Sep (W4),
 > 7 Oct (W5), 14 Oct (W6); Class 3 and Class 6–7 teaching repos; project guide PDF.
-> **Not read directly:** W2, W7–W8 material (team docs cite W8 IBCS rules — see §3), W9+ (GitHub Actions, Spaces,
-> LLMs/agents). Class transcripts are auto-generated and garbled; only summaries and slides are authoritative.
+> **Not read directly:** W2, W7–W8 material (team docs cite W8 IBCS rules — see §3), W9+ slides (GitHub Actions,
+> Spaces, LLMs/agents; CI and the Space were built on 14 Nov from the W1 calendar and W5 slides). Class transcripts
+> are auto-generated and garbled; only summaries and slides are authoritative.
+> **Live task tracker:** the team roadmap artifact (tasks, decisions F2·x/F3·x, "O que falta fazer").
 
 ---
 
@@ -40,7 +42,7 @@
 | Item | Detail |
 |---|---|
 | Lecturers | Henrique Carreiro, João Azambuja |
-| Team (G11) | Ana Carapinha 20250306 · Filipa Filipe *(number missing)* · Sandra Figueiredo 20251705 · Tiago Marques 20251844 |
+| Team (G11) | Ana Carapinha 20250306 · Filipa Filipe 20250313 · Sandra Figueiredo 20251705 · Tiago Marques 20251844 |
 | Assessment | Project 50% + Exam 50% (exam: slides + recommended readings; T/F, multiple choice, a few open questions; one handwritten A4 sheet, both sides) |
 | Status reports | Moodle form, Weeks 3, 6, 9: status, challenges, expected insights, **each member's contribution**, **how AI is used responsibly**, next steps |
 | Final | 10-min presentation + 10-min defence + **live demo** in a realistic scenario; every member must explain every decision |
@@ -65,7 +67,8 @@ and **docstrings**; `requirements.txt`; `/src`, `/docs`; `.gitignore`; meaningfu
 | **W5** | Adopt a pretrained model by evidence: same folds, simple baseline, metric fit to the problem (PR-AUC under imbalance), costs, written decision record. Pin library commit, weights tag, data version. **A model package = weights/context + `config.json` + Model Card** (intended use, **excluded uses**, data, evaluation, limitations). skops/safetensors, not pickle. Gradio → Spaces. |
 | **W6–7** | Train / validation / test; choose on validation only; **test once**. One experiment log, **train + validation rows per model**, named models, code path for reproducibility. Start with a baseline. Lecturer's suggested minimum metrics: **Accuracy, Precision, Recall, F1** (non-prescriptive — pick relevant ones and justify). **Show ≥ 2 confusion matrices (train + validation)**, full table in appendix. Threshold turns a probability into an action. Simple end-to-end pipeline first. Working charts ≠ presentation charts; Plotly for working charts; explain "higher/lower is better" for non-experts. Graded on translating the business problem → model → value, not on the model alone; **start the deck early**. |
 | **W8** *(cited in team docs, not read here)* | IBCS reporting: message first, who/what/when, PL (plan) as target, "start from the decision the page supports"; storyline situation → problem → question → answer → evidence → consequences. |
-| **W9–W11** *(upcoming)* | GitHub Actions (CI running pytest), HF model repo + Space with Gradio, LLM/agent component with human oversight. |
+| **W9–W10** *(done 14 Nov)* | GitHub Actions CI running pytest + automatic deploy to a Gradio Space. HF model repo not created (optional; the model ships inside the Space). |
+| **W11** *(this week)* | LLM/agent component with human oversight — **left out by team decision (D25, 18 Nov)**. |
 
 ---
 
@@ -77,7 +80,8 @@ and **docstrings**; `requirements.txt`; `/src`, `/docs`; `.gitignore`; meaningfu
 
 Two parts: **(1) risk** — judged by **calibration** (predicted vs observed by decile, Brier, log loss);
 **(2) priority** — judged by **PR-AUC and recall/precision in the top k%** of *eligible* discharges (D21).
-Stakeholder: Director of Care Quality; a follow-up team with fixed capacity (10% or 20%, still open).
+Stakeholder: Director of Care Quality; a follow-up team with fixed capacity: **20% of eligible discharges (D24,
+14 Nov)**, with 10% as sensitivity analysis. Report, deck and target 1b of D20 use 20%; the app shows both.
 Baseline to beat at the same capacity: **ranking by `number_inpatient`** (random is the floor).
 Limits to repeat everywhere: not causal; labels incomplete (other hospitals, `>30` counted negative); 1999–2008, no
 dates; human review of every contact; calibration valid only for this population.
@@ -101,36 +105,65 @@ dates; human review of every contact; calibration valid only for this population
 - Preprocessing (D16): one `ColumnTransformer` fit on train folds (scaler; `log1p`+scaler on visit counts; one-hot
   with `min_frequency=100`) → 160 columns.
 - **Model v1 (D17): `HistGradientBoostingClassifier`**, no early stopping. OOF PR-AUC **0.234 ± 0.008**
-  (logistic 0.210, RF 0.221, random 0.113). Train PR-AUC 0.379 → **large overfit, tuning pending**.
-- Ablation (D18): `payer_code` stays; incomplete-registration flag out; `max_glu_serum` pending.
+  (logistic 0.210, RF 0.221, random 0.113). Train PR-AUC 0.379 → large overfit; small tuning is now **optional**
+  (if not done, the report says "untuned" and notebook 04's name changes).
+- Ablation (D18): `payer_code` stays; incomplete-registration flag out; `max_glu_serum` **stays** (F3·3, 14 Nov) →
+  34 features.
 - Calibration (D22): predicted vs observed within 1 pp per decile on OOF → no recalibration.
 - At k = 10% eligible: recall 25.0% vs 24.0% (`number_inpatient`) vs 10% random; at 20%: 40.1% vs 37.6%.
 - **Kumo Tabular (D23)**: documented challenger only — ties v1 (PR-AUC 0.233 ± 0.005) at higher cost (GPU, ~14×
   inference time, patient data travels with the model). Not in the app or `models/`. HF Hub used only to publish
   v1 and the Space.
-- App: `src/app.py` (Gradio) shows estimated risk vs eligible average, percentile and action; out-of-list discharges
-  are labelled. Model saved with skops in `models/v1/` (`model.skops`, `config.json`, README placeholder).
+- App: `src/app.py` (Gradio; `app.py` at the root is the Space entry point). One discharge → percentile scale
+  (P100 = highest risk; 10% band = follow-up, 10–20% band = follow-up if capacity allows), a "capacity · suggested
+  action" table, and the risk in plain language ("of 100 patients with this profile, about 16 return…"). Percentile
+  is rounded down so it matches the action at the cuts. No probability gauges, tiers or traffic lights;
+  `flagging_mode="never"`; human review notice. Batch CSV → prioritised list: not built.
+- Model package in `models/v1/` (`model.skops`, `config.json`, `README.md` = model card copied from
+  `docs/model_card.md`), **tracked in Git** (3 MB, no patient data). Model card has OOF results; the "Avaliação no
+  teste" section is empty until T3.6.
+- Deployment (14 Nov): `.github/workflows/ci.yml` — job `test` (rebuilds processed data from `data/raw/`, runs
+  pytest, 76 tests) on every push/PR; job `deploy` on push to `main` if tests pass, via `scripts/deploy_space.py`
+  with secret `TAFS`. Space: `SandraLurdes/Bootcampprojectodiabetes` (public, ZeroGPU hardware; a dummy
+  `@spaces.GPU` function lets it boot, the model runs on CPU).
 
-### 4.4 Open items (roadmap, 11 Nov)
+### 4.4 Open items (roadmap, 18 Nov)
 | Item | Status |
 |---|---|
-| Capacity 10% or 20% (F3·1) | open — business decision |
-| Targets/PL of D20 (F3·2) | `Proposta` |
-| `max_glu_serum` (F3·3, D18) | to confirm (doesn't change the model) |
-| Tuning HGB (3–4 combos: `min_samples_leaf`, `max_leaf_nodes`, `learning_rate`) | to do |
-| Fairness discussion (`race` missing: recall 7%; age 90–100: 15%) and whether `race` stays as a feature | to do |
-| Final test evaluation T3.6 (once) + Model Card filled with test numbers | to do |
-| GitHub Actions CI, HF model repo + Space (W9–10) | to do |
-| LLM component T5 (W11) with human review | not started |
-| Deck, storyline, demo script, rehearsals | to do |
+| Capacity (F3·1) | **closed**: 20% (D24) |
+| `max_glu_serum` (F3·3, D18) | **closed**: stays |
+| Targets of D20 (F3·2) | `Proposta` — **must be closed before opening the test**; T0.6 stays open until then |
+| Final test evaluation T3.6 (once) + test numbers in model card and report (conclusions, Abstract at 20%) | to do — critical |
+| Deck PDF (≤ 30 slides, every name + number, Space link) | to do — critical |
+| Code freeze `v1.0` tag + Moodle ZIP (`EDSB26_G11.csv` complete) | W12 (23–27 Nov) — critical |
+| `docs/monitoring.md` (T4.5) | to do |
+| Test the Space with test-set cases and invalid inputs; demo script + plan B | to do |
+| Fairness discussion (eligible, k = 10%: `race` missing flagged 2%, recall 3% vs 16–29%; age 90–100 recall 10%) | numbers in notebook 05; write-up in report to do |
+| LLM component T5 (W11) | **out of scope (D25, 18 Nov)**: the model's gain is modest and it has no per-patient explanation, so an LLM note would sound more certain than the model is. One sentence on this goes in the report and deck. Don't build it without a new decision |
+| Tuning HGB; own HF model repo | optional |
+| Rehearsals and Q&A bank | W13–14 |
 
 ---
 
-## 5. Conflicts and gaps vs the classes (review 11 Nov)
+## 5. Conflicts and gaps vs the classes (review 11 Nov, status rechecked 18 Nov)
 
 Severity: **High** = visible to graders against an explicit course rule · **Medium** = explicit suggestion not
 followed, defensible with a sentence · **Low** = deviation from teaching-repo convention.
-*Evidence = what was found in the repo on 11 Nov.*
+*Evidence = what was found in the repo on 11 Nov; **Status 18 Nov** says what changed since.*
+
+| # | Status 18 Nov |
+|---|---|
+| C1 | **Open** — 9 `.ipynb` still tracked with outputs |
+| C2 | **Open** — still git-ignored; no `docs/ai_usage.md` |
+| C3 | **Resolved** — 20250313 in `EDSB26_G11.csv` and README |
+| C4 | **Partly** — PR #1–#7 merged into `main`; 42 of 55 commits still from one account |
+| C5 | **Resolved** — `Projeto_Final` has 4 confusion matrices (train + validation, 10% and 20%) |
+| C6 | **Resolved** — accuracy/F1 shown as reference next to the matrices; "why not accuracy/F1" written in section I |
+| C7 | **Resolved** — `docs/model_card.md` written, `models/v1/README.md` tracked and deployed (test section pending T3.6) |
+| C8 | **Open** — still 27 public functions/classes without docstring (same list) |
+| C9 | **Open** — no `requirements-installed.txt` |
+| C10 | Unchanged — also needed now by CI, which rebuilds processed data from `data/raw/` |
+| C11 | **Open, optional** — tuning not done |
 
 ### 5.1 Conflicts with class rules
 
@@ -163,7 +196,8 @@ baseline + `number_inpatient` rule compared at the same capacity (W1, W6) · PR-
 threshold set by capacity, not 0.5 (W6) · experiment log with train/validation rows (W6) · Kumo adoption decided by
 evidence with a decision record, pinned commit and costs (W5, mirrors Lab W5_1) · skops with reviewed untrusted
 types (W5) · 3-level success criteria and stated limits (W1) · IBCS pages with message titles (W8) ·
-`.env` ignored, pinned `requirements.txt`, 61 tests.
+`.env` ignored, pinned `requirements.txt`, 76 tests run by CI on every push · Space deployed automatically from
+`main` (W9–W10).
 
 ---
 
@@ -181,6 +215,6 @@ types (W5) · 3-level success criteria and stated limits (W1) · IBCS pages with
 ---
 
 ## 7. To confirm with lecturers / Moodle
-- Presentation slots (W13–14) and the status report 3 deadline (W9).
-- Whether the live demo must run on HF Spaces or may run locally (W5 said local is an acceptable fallback).
-- Content and expectations of W9–W11 (CI, Spaces, LLM/agent component).
+- Presentation slots (W13–14) and the exact code-freeze / ZIP deadline (W12).
+- That leaving out the W11 LLM/agent component (D25) is acceptable, i.e. that it isn't mandatory for the project.
+- The demo will run on the Space; plan B is a local run (W5 said local is an acceptable fallback).
