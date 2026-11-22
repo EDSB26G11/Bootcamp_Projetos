@@ -36,10 +36,6 @@ TEAL_LIGHT = "#E6F4F2"   # fundos de cartão
 CONTEXT = "#DDE3E5"      # restantes altas
 TEXT = "#1F2A30"         # texto normal (≈ 15:1)
 MUTED = "#4F5D66"        # rodapés e rótulos secundários (≈ 6,9:1)
-# Escala de prioridade: cores de risco, só nas altas que entram na lista.
-RISK_TOP = "#7A1F2B"     # vermelho-grená: os 10% de maior risco (texto ≈ 10:1)
-RISK_NEXT = "#F2A65A"    # laranja: dos 10% aos 20% (só como área)
-RISK_NEXT_TEXT = "#9A4E0B"  # o mesmo laranja, escurecido para texto (≈ 5,9:1)
 
 # Campos mostrados na app; os outros vêm de bundle["defaults"].
 NUMERIC_INPUTS = ["age_band", "time_in_hospital", "num_medications", "number_diagnoses",
@@ -187,7 +183,7 @@ def describe(out: dict) -> str:
 
 def message(out: dict) -> str:
     """Mensagem IBCS: a conclusão primeiro, numa frase; o risco estimado a seguir.
-    A posição na lista está na escala logo abaixo, em percentil."""
+    A posição na lista está na escala logo abaixo, em %."""
     k_in = [k for k in CAPACITIES if out[f"follow_up_k{k}"]]
     top = pct(_top(out) / 100, 0)
     risk_line = _risk_text(out, bold=True)
@@ -200,58 +196,30 @@ def message(out: dict) -> str:
             f"em menos de 30 dias\n{risk_line}")
 
 
-def _suggested_action(out: dict, k: int) -> str:
-    """Ação sugerida por capacidade: nos 10% de maior risco, follow-up; dos 10%
-    aos 20%, follow-up se a equipa tiver capacidade para chegar lá."""
-    if not out.get("eligible", True):
-        return NOT_ELIGIBLE.capitalize()
-    if not out[f"follow_up_k{k}"]:
-        return "Sem follow-up"
-    if out[f"follow_up_k{min(CAPACITIES)}"]:
-        return "Follow-up"
-    return "Follow-up, se houver capacidade na equipa"
-
-
-def action_table(out: dict) -> pd.DataFrame:
-    return pd.DataFrame({
-        "Capacidade da equipa": [f"{k}% das altas" for k in CAPACITIES],
-        "Ação sugerida": [_suggested_action(out, k) for k in CAPACITIES],
-    })
-
-
 def position_scale(out: dict):
     """Que prioridade: a escala das altas elegíveis, do maior para o menor
-    risco, em percentil de risco, com a alta marcada e as faixas da lista
-    (grená: os 10% de maior risco; laranja: dos 10% aos 20%)."""
+    risco, em % (0% = maior risco), só com o ponteiro desta alta."""
     from matplotlib.figure import Figure  # sem pyplot: não acumula figuras no servidor
 
     fig = Figure(figsize=(8, 1.95))
     fig.patch.set_alpha(0)
-    x = min(max(out["top_pct"], 0.5), 99.5)  # esquerda = maior risco
-    p = _shown_percentile(out)
+    top = _top(out)
+    x = min(max(top, 0.5), 99.5)  # esquerda = maior risco
     ax = fig.add_axes([0.015, 0.0, 0.97, 1.0])
     ax.set_xlim(0, 100)
     ax.set_ylim(-1.75, 1.75)
     ax.axis("off")
-    ax.text(0, 1.7, "Percentil de risco entre as altas elegíveis (P100 = maior risco)", fontsize=10,
-            color=MUTED, va="top")
+    ax.text(0, 1.7, "Posição entre as altas que podem receber follow-up, do maior para o menor risco",
+            fontsize=10, color=MUTED, va="top")
     ax.barh(0, 100, color=CONTEXT, height=0.62)
-    ax.barh(0, 20, color=RISK_NEXT, height=0.62)
-    ax.barh(0, 10, color=RISK_TOP, height=0.62)
-    for k in CAPACITIES:
-        ax.plot([k, k], [-0.31, 0.31], color="white", lw=2)
-    for xt, t, ha, c in [(0, "P100", "left", MUTED), (10, "P90", "center", RISK_TOP),
-                         (20, "P80", "center", RISK_NEXT_TEXT), (100, "P0", "right", MUTED)]:
-        ax.text(xt, -0.45, t, fontsize=9.5, color=c, ha=ha, va="top")
+    for xt in (0, 25, 50, 75, 100):
+        ha = "left" if xt == 0 else "right" if xt == 100 else "center"
+        ax.text(xt, -0.45, f"{xt}%", fontsize=9.5, color=MUTED, ha=ha, va="top")
     ax.text(0, -1.1, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
     ax.text(100, -1.1, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
-    ax.text(24, -1.1, "■", fontsize=11, color=RISK_TOP, ha="left", va="top")
-    ax.text(26.5, -1.1, "follow-up (10% de maior risco)", fontsize=9.5, color=TEXT, ha="left", va="top")
-    ax.text(55, -1.1, "■", fontsize=11, color=RISK_NEXT, ha="left", va="top")
-    ax.text(57.5, -1.1, "se houver capacidade (10–20%)", fontsize=9.5, color=TEXT, ha="left", va="top")
     ax.plot(x, 0.55, marker="v", color=TEXT, markersize=12)
-    ax.text(x + (1.2 if x < 60 else -1.2), 0.85, f"esta alta: percentil {p}", fontsize=11, fontweight="bold",
-            color=TEXT, ha="left" if x < 60 else "right", va="center")
+    ax.text(x + (1.2 if x < 60 else -1.2), 0.85, f"esta alta: nos {pct(top / 100, 0)} com maior risco",
+            fontsize=11, fontweight="bold", color=TEXT, ha="left" if x < 60 else "right", va="center")
     return fig
 
 
@@ -296,9 +264,8 @@ def chart_notes(bundle: dict) -> str:
 - **Qual o risco (este quadro).** A barra escura é o risco estimado desta alta. A barra cinzenta é a média das
   altas elegíveis do treino{base_txt}. As duas estão na mesma escala.
 - **Que prioridade (escala do quadro de cima).** A escala representa todas as altas elegíveis do treino,
-  ordenadas do maior risco (P100, à esquerda) para o menor (P0, à direita). O triângulo marca o percentil desta
-  alta: no percentil 85, 85% das altas elegíveis têm risco igual ou menor. A grená, os 10% de maior risco (P90 a P100):
-  follow-up. A laranja, dos 10% aos 20% (P80 a P90): follow-up se a equipa tiver capacidade.
+  ordenadas do maior risco (0%, à esquerda) para o menor (100%, à direita). O triângulo marca a posição desta
+  alta: nos 15% com maior risco quer dizer que 15% das altas elegíveis têm risco igual ou maior.
 
 **Pressupostos principais**
 
@@ -379,7 +346,7 @@ def build_app(bundle: dict):
             '<div class="app-header"><h1>Prioridade de follow-up após a alta</h1>'
             '<p>Diabetes 130-US hospitals · modelo v1 (HistGradientBoosting)</p>'
             f'<p><strong>Risco de readmissão &lt; 30 dias e posição na lista</strong>, face a {base}, '
-            'e ação por capacidade da equipa</p>'
+            'e ação sugerida</p>'
             '<p>Dados de 1999–2008 · risco comparado com as previsões out-of-fold do treino</p></div>')
 
         with gr.Row(equal_height=False):
@@ -414,11 +381,10 @@ def build_app(bundle: dict):
                 btn = gr.Button("Avaliar alta", variant="primary", size="lg")
 
             with gr.Column(scale=7, elem_classes="stack"):
-                # 1.º quadro: conclusão, escala de prioridade (percentil) e ação por capacidade.
+                # 1.º quadro: conclusão e escala de prioridade (posição em %).
                 with gr.Column(elem_classes=["card", "card-result"]):
                     msg = gr.Markdown(elem_classes="result-msg")
                     scale = gr.Plot(show_label=False, container=False)
-                    table = gr.Dataframe(interactive=False, show_label=False, wrap=True)
 
                 # 2.º quadro: o risco face à média, com a legenda e os pressupostos (IBCS: explicar o que se lê).
                 with gr.Column(elem_classes=["card", "card-chart"]):
@@ -434,9 +400,9 @@ def build_app(bundle: dict):
 
         def _predict(*args):
             res = predict_risk(bundle, **dict(zip(INPUTS, args)))
-            return message(res), position_scale(res), action_table(res), risk_chart(res)
+            return message(res), position_scale(res), risk_chart(res)
 
-        outputs = [msg, scale, table, chart]
+        outputs = [msg, scale, chart]
         btn.click(_predict, components, outputs)
         demo.load(_predict, components, outputs)
     return demo
