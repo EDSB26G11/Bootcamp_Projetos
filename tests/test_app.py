@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.app import (CAPACITY, INPUTS, capacity_threshold, chart_notes, describe, is_eligible, make_record, message,
-                     predict_risk, recommendation, risk_percentile)
+                     message_detail, predict_risk, recommendation, risk_percentile)
 from src.features.build import CATEGORICAL_FEATURES, FEATURES
 from src.models.baselines import candidate_models
 from src.models.evaluate import predict_scores
@@ -92,7 +92,7 @@ def test_app_not_eligible_never_gets_follow_up(saved):
     assert not out["eligible"] and out["high_risk"] and not out["follow_up"]
     assert 0 <= out["percentile"] <= 100
     for text in (message(out), describe(out)):
-        assert "Sem follow-up" in text and "Risco alto / Destino com cuidados médicos" in text
+        assert "Sem follow-up" in text and "Risco alto ou Destino com cuidados médicos" in text
 
 
 def test_app_shows_estimated_risk_with_reference(saved):
@@ -101,7 +101,7 @@ def test_app_shows_estimated_risk_with_reference(saved):
     assert 0 <= out["risk"] <= 1 and out["base_rate"] == pytest.approx(bundle["base_rate_eligible"])
     text = describe(out)
     assert "Risco estimado de readmissão" in text and "média de" in text and "Em cada 100 doentes" in text
-    assert "Risco estimado de readmissão" in message(out)
+    assert "Risco estimado de readmissão" in message_detail(out)
     assert "elegíveis" not in text  # jargão do projeto (D21): na app diz-se "que podem receber follow-up"
 
 
@@ -134,10 +134,10 @@ def test_capacity_threshold_matches_saved_cuts(saved):
 
 
 @pytest.mark.parametrize("eligible, high, rec, why", [
-    (True, True, "Follow-up", "Risco alto / Destino sem cuidados médicos"),
-    (True, False, "Sem follow-up", "Risco baixo / Destino sem cuidados médicos"),
-    (False, True, "Sem follow-up", "Risco alto / Destino com cuidados médicos"),
-    (False, False, "Sem follow-up", "Risco baixo / Destino com cuidados médicos"),
+    (True, True, "Follow-up", "Risco alto ou Destino sem cuidados médicos"),
+    (True, False, "Sem follow-up", "Risco baixo ou Destino sem cuidados médicos"),
+    (False, True, "Sem follow-up", "Risco alto ou Destino com cuidados médicos"),
+    (False, False, "Sem follow-up", "Risco baixo ou Destino com cuidados médicos"),
 ])
 def test_recommendation_and_reason(eligible, high, rec, why):
     out = {"eligible": eligible, "high_risk": high, "follow_up": eligible and high, "risk": 0.1,

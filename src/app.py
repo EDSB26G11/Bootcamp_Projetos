@@ -181,10 +181,10 @@ def _risk_text(out: dict, bold: bool = False) -> str:
 def recommendation(out: dict) -> tuple[str, str]:
     """Recomendação e motivo, como no esboço da equipa:
 
-    Recomendação: Follow-up        Motivo: Risco alto / Destino sem cuidados médicos
-    Recomendação: Sem follow-up    Motivo: Risco baixo / Destino sem cuidados médicos
-    Recomendação: Sem follow-up    Motivo: Risco alto / Destino com cuidados médicos
-    Recomendação: Sem follow-up    Motivo: Risco baixo / Destino com cuidados médicos
+    Recomendação: Follow-up        Motivo: Risco alto ou Destino sem cuidados médicos
+    Recomendação: Sem follow-up    Motivo: Risco baixo ou Destino sem cuidados médicos
+    Recomendação: Sem follow-up    Motivo: Risco alto ou Destino com cuidados médicos
+    Recomendação: Sem follow-up    Motivo: Risco baixo ou Destino com cuidados médicos
 
     Risco alto = nos CAPACITY% com maior risco. Destino com cuidados médicos =
     destino da alta que já tem acompanhamento (fora da lista, D21).
@@ -192,7 +192,7 @@ def recommendation(out: dict) -> tuple[str, str]:
     rec = "Follow-up" if out["follow_up"] else "Sem follow-up"
     risk = "Risco alto" if out["high_risk"] else "Risco baixo"
     dest = "Destino sem cuidados médicos" if out.get("eligible", True) else "Destino com cuidados médicos"
-    return rec, f"{risk} / {dest}"
+    return rec, f"{risk} ou {dest}"
 
 
 def describe(out: dict) -> str:
@@ -207,15 +207,19 @@ def describe(out: dict) -> str:
 
 
 def message(out: dict) -> str:
-    """Quadro do resultado (HTML): a recomendação numa caixa, o motivo logo
-    abaixo e, a seguir, o risco estimado. A posição na lista está na escala
-    logo abaixo, em %."""
+    """Topo do quadro do resultado (HTML): a recomendação numa caixa e o motivo
+    logo abaixo. A seguir vem a escala de posição e depois message_detail."""
     rec, why = recommendation(out)
-    top = pct(_top(out) / 100, 0)
     return (f'<div class="rec-box"><span class="rec-label">Recomendação:</span> '
             f'<span class="rec-value">{rec}</span></div>'
-            f'<p class="rec-why"><span class="rec-label">Motivo:</span> {why}</p>'
-            f'<p class="rec-detail">{_risk_text(out, bold=True)} Esta alta está nos {top} com maior risco; '
+            f'<p class="rec-why"><span class="rec-label">Motivo:</span> {why}</p>')
+
+
+def message_detail(out: dict) -> str:
+    """Fim do quadro do resultado (HTML), por baixo da escala: o risco estimado
+    em linguagem simples e a posição desta alta."""
+    top = pct(_top(out) / 100, 0)
+    return (f'<p class="rec-detail">{_risk_text(out, bold=True)} Esta alta está nos {top} com maior risco; '
             f'risco alto = nos {CAPACITY}% com maior risco.</p>')
 
 
@@ -237,9 +241,13 @@ def position_scale(out: dict):
     ax.barh(0, 100, color=CONTEXT, height=0.62)
     ax.barh(0, CAPACITY, color=TEAL_MID, height=0.62)  # quem cabe no follow-up (risco alto)
     ax.text(CAPACITY / 2, 0, "risco alto", fontsize=9.5, color=TEXT, ha="center", va="center")
-    for xt in (0, CAPACITY, 50, 75, 100):
+    for xt in range(0, 101, 20):  # escala de 20 em 20
         ha = "left" if xt == 0 else "right" if xt == 100 else "center"
         ax.text(xt, -0.45, f"{xt}%", fontsize=9.5, color=MUTED, ha=ha, va="top")
+    # Destaque do corte da capacidade (30%): linha sobre a barra e rótulo a negrito.
+    ax.plot([CAPACITY, CAPACITY], [-0.42, 0.42], color=TEAL_DARK, linewidth=2.5)
+    ax.text(CAPACITY, -0.45, f"{CAPACITY}%", fontsize=10.5, fontweight="bold", color=TEAL_DARK, ha="center",
+            va="top", bbox=dict(facecolor="white", edgecolor="none", pad=1.5))
     ax.text(0, -1.1, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
     ax.text(100, -1.1, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
     ax.plot(x, 0.55, marker="v", color=TEXT, markersize=12)
@@ -418,6 +426,7 @@ def build_app(bundle: dict):
                 with gr.Column(elem_classes=["card", "card-result"]):
                     msg = gr.HTML(elem_classes="result-msg")
                     scale = gr.Plot(show_label=False, container=False)
+                    detail = gr.HTML(elem_classes="result-msg")
 
                 # 2.º quadro: o risco face à média, com a legenda e os pressupostos (IBCS: explicar o que se lê).
                 with gr.Column(elem_classes=["card", "card-chart"]):
@@ -433,9 +442,9 @@ def build_app(bundle: dict):
 
         def _predict(*args):
             res = predict_risk(bundle, **dict(zip(INPUTS, args)))
-            return message(res), position_scale(res), risk_chart(res)
+            return message(res), position_scale(res), message_detail(res), risk_chart(res)
 
-        outputs = [msg, scale, chart]
+        outputs = [msg, scale, detail, chart]
         btn.click(_predict, components, outputs)
         demo.load(_predict, components, outputs)
     return demo
