@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.app import INPUTS, chart_notes, describe, is_eligible, make_record, message, predict_risk, risk_percentile
+from src.app import (CAPACITY, INPUTS, capacity_threshold, chart_notes, describe, is_eligible, make_record, message,
+                     predict_risk, recommendation, risk_percentile)
 from src.features.build import CATEGORICAL_FEATURES, FEATURES
 from src.models.baselines import candidate_models
 from src.models.evaluate import predict_scores
@@ -66,11 +67,11 @@ def test_app_percentile(saved):
     for out in (low, high):
         assert 0 <= out["percentile"] <= 100
     assert high["percentile"] > low["percentile"]
-    # a ação muda ao passar o corte de 10%
-    t = bundle["threshold_k10"]
-    assert risk_percentile(bundle, t + 1e-9) >= 89
-    assert high["follow_up_k10"] and not low["follow_up_k10"]
-    assert "propor follow-up" in describe(high) and "sem follow-up" in describe(low)
+    # a recomendação muda ao passar o corte da capacidade (30%)
+    t = capacity_threshold(bundle)
+    assert risk_percentile(bundle, t + 1e-9) >= 100 - CAPACITY - 1
+    assert high["follow_up"] and not low["follow_up"]
+    assert "Recomendação: Follow-up" in describe(high) and "Recomendação: Sem follow-up" in describe(low)
     assert "%" in describe(high) and "probabilidade" not in describe(high).lower()
 
 
@@ -88,9 +89,10 @@ def test_app_not_eligible_never_gets_follow_up(saved):
     assert not is_eligible(bundle, discharge_disposition_id_desc=dest)
     out = predict_risk(bundle, discharge_disposition_id_desc=dest, number_inpatient=4, number_emergency=0,
                        number_outpatient=0)
-    assert not out["eligible"] and not out["follow_up_k10"] and not out["follow_up_k20"]
+    assert not out["eligible"] and out["high_risk"] and not out["follow_up"]
     assert 0 <= out["percentile"] <= 100
-    assert "Fora da lista" in message(out) and "Fora da lista" in describe(out)
+    for text in (message(out), describe(out)):
+        assert "Sem follow-up" in text and "Risco alto / Destino com cuidados médicos" in text
 
 
 def test_app_shows_estimated_risk_with_reference(saved):
@@ -107,16 +109,39 @@ def test_chart_notes_explain_reading_and_assumptions(saved):
     bundle = load_model(saved[2])
     notes = chart_notes(bundle)
     assert "Como ler" in notes and "Pressupostos principais" in notes
-    assert "10%" in notes and "20%" in notes and "D21" in notes
+    assert f"{CAPACITY}%" in notes and "D21" in notes and "Destino sem / com cuidados médicos" in notes
 
 
 def test_shown_percentile_matches_action_at_the_cut(saved):
-    """Logo abaixo do corte de 10% a alta não pode aparecer como P90 (onde a lista começa)."""
+    """Logo abaixo do corte de 30% a alta não pode aparecer como P70 (onde a lista começa)."""
     from src.app import _shown_percentile, _top
 
     bundle = load_model(saved[2])
-    t = bundle["threshold_k10"]
+    t = capacity_threshold(bundle)
     below = {"percentile": risk_percentile(bundle, t - 1e-9)}
     above = {"percentile": risk_percentile(bundle, t + 1e-9)}
-    assert _shown_percentile(below) < 90 <= _shown_percentile(above)
-    assert _top(above) <= 10 < _top(below)
+    assert _shown_percentile(below) < 100 - CAPACITY <= _shown_percentile(above)
+    assert _top(above) <= CAPACITY < _top(below)
+
+
+def test_capacity_threshold_matches_saved_cuts(saved):
+    """Sem threshold_k30 no config.json, o corte vem dos quantis OOF e bate com os cortes gravados."""
+    bundle = load_model(saved[2])
+    assert capacity_threshold(bundle, 10) == pytest.approx(bundle["threshold_k10"])
+    q = np.asarray(bundle["oof_quantiles"])
+    assert capacity_threshold(bundle, 20) == pytest.approx(np.quantile(q, 0.80))
+    assert bundle["threshold_k20"] >= capacity_threshold(bundle, 30)
+
+
+@pytest.mark.parametrize("eligible, high, rec, why", [
+    (True, True, "Follow-up", "Risco alto / Destino sem cuidados médicos"),
+    (True, False, "Sem follow-up", "Risco baixo / Destino sem cuidados médicos"),
+    (False, True, "Sem follow-up", "Risco alto / Destino com cuidados médicos"),
+    (False, False, "Sem follow-up", "Risco baixo / Destino com cuidados médicos"),
+])
+def test_recommendation_and_reason(eligible, high, rec, why):
+    out = {"eligible": eligible, "high_risk": high, "follow_up": eligible and high, "risk": 0.1,
+           "base_rate": 0.096, "percentile": 80.0}
+    assert recommendation(out) == (rec, why)
+    html = message(out)
+    assert f'<span class="rec-value">{rec}</span>' in html and why in html

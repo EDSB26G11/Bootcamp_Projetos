@@ -18,7 +18,7 @@ Projeto do grupo **EDSB26_G11** para o Enterprise Data Science Bootcamp 2026-27,
 Ana Carapinha (20250306), Filipa Filipe (a indicar), Sandra Figueiredo (20251705), Tiago Marques (20251844).
 
 A app estima, no momento da alta, o risco de um doente com diabetes ser readmitido em menos de 30 dias,
-e diz onde essa alta fica face às outras e se entra na lista de follow-up com capacidade de 10% ou de 20%
+e diz onde essa alta fica face às outras e se entra na lista de follow-up com capacidade de 30%
 das altas elegíveis.
 
 - **Uma pessoa revê cada caso.** A app propõe; não decide.

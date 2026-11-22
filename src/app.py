@@ -6,7 +6,8 @@ O utilizador preenche as features com mais peso; as restantes ficam com a
 mediana/moda do treino. A saída responde às duas partes da pergunta: qual o
 risco de readmissão em menos de 30 dias (o score do modelo, que bate certo com
 as readmissões observadas nas previsões OOF, por decis) e que prioridade
-(posição face às altas elegíveis e ação para cada capacidade). Sem gauges nem
+(posição face às altas elegíveis e recomendação, com o motivo, para a
+capacidade da equipa: CAPACITY). Sem gauges nem
 semáforos.
 
 Layout segundo a W8 (IBCS), onde se aplica a uma app:
@@ -43,7 +44,9 @@ NUMERIC_INPUTS = ["age_band", "time_in_hospital", "num_medications", "number_dia
 CATEGORICAL_INPUTS = ["discharge_disposition_id_desc", "admission_source_id_desc",
                       "diag_1_group", "A1Cresult", "insulin"]
 INPUTS = NUMERIC_INPUTS + CATEGORICAL_INPUTS
-CAPACITIES = {10: "threshold_k10", 20: "threshold_k20"}
+# Capacidade da equipa de follow-up: % das altas que podem receber follow-up,
+# começando pelas de maior risco. "Risco alto" = estar dentro desta fração.
+CAPACITY = 30
 
 # Rótulos em português (o valor passado ao modelo não muda).
 LABELS = {
@@ -109,22 +112,35 @@ def is_eligible(bundle: dict, **values) -> bool:
     return dest not in set(bundle.get("no_follow_up_discharge", []))
 
 
+def capacity_threshold(bundle: dict, k: int = CAPACITY) -> float:
+    """Risco mínimo para uma alta ficar nos k% com maior risco.
+
+    Usa threshold_k{k} do config.json, se existir. Se não, calcula-o a partir
+    dos 1001 quantis das previsões OOF das altas elegíveis: para k inteiro dá o
+    mesmo valor que threshold_for_capacity (ex.: o quantil 0,80 é o threshold_k20).
+    """
+    key = f"threshold_k{k}"
+    if key in bundle:
+        return float(bundle[key])
+    return float(np.quantile(np.asarray(bundle["oof_quantiles"]), 1 - k / 100))
+
+
 def predict_risk(bundle: dict, **values) -> dict:
-    """Risco estimado (score do modelo), percentil de risco, a fração de altas
-    com risco igual ou maior e a ação (follow-up ou não) para cada capacidade.
-    Uma alta fora da lista (D21) tem risco e posição, mas nunca follow-up."""
+    """Risco estimado (score do modelo), percentil de risco, se o risco é alto
+    (dentro da capacidade) e a recomendação. Uma alta fora da lista (D21, destino
+    com cuidados médicos) tem risco e posição, mas nunca follow-up."""
     score = float(bundle["model"].predict_proba(make_record(bundle, **values))[0, 1])
     pct_ = risk_percentile(bundle, score)
     eligible = is_eligible(bundle, **values)
+    high = score >= capacity_threshold(bundle)
     return {"risk": score, "base_rate": bundle.get("base_rate_eligible"), "percentile": pct_,
-            "top_pct": 100 - pct_, "eligible": eligible,
-            **{f"follow_up_k{k}": eligible and score >= bundle[key] for k, key in CAPACITIES.items()}}
+            "top_pct": 100 - pct_, "eligible": eligible, "high_risk": high, "follow_up": eligible and high}
 
 
 def _shown_percentile(out: dict) -> int:
     """Percentil mostrado ao utilizador, arredondado para baixo: assim bate
-    sempre certo com a ação. Ex.: 89,9 (logo abaixo do corte de 10%, sem
-    follow-up) aparece como P89 e não como P90, que é onde a lista começa."""
+    sempre certo com a ação. Ex.: 69,9 (logo abaixo do corte de 30%, sem
+    follow-up) aparece como P69 e não como P70, que é onde a lista começa."""
     return int(np.floor(out["percentile"]))
 
 
@@ -147,7 +163,7 @@ def _risk_text(out: dict, bold: bool = False) -> str:
         return ""
     risk, base = out["risk"], out.get("base_rate")
     shown = "menos de 1%" if risk < 0.005 else pct(risk, 0)
-    value = f"**{shown}**" if bold else shown
+    value = f"<strong>{shown}</strong>" if bold else shown
     text = f"Risco estimado de readmissão em menos de 30 dias: {value}"
     if base:
         side = "próximo da" if abs(risk - base) < 0.005 else "acima da" if risk > base else "abaixo da"
@@ -162,38 +178,45 @@ def _risk_text(out: dict, bold: bool = False) -> str:
     return text + f". Em cada 100 doentes com este perfil, {count} nesse prazo."
 
 
-NOT_ELIGIBLE = "fora da lista (já tem acompanhamento à saída)"
+def recommendation(out: dict) -> tuple[str, str]:
+    """Recomendação e motivo, como no esboço da equipa:
 
+    Recomendação: Follow-up        Motivo: Risco alto / Destino sem cuidados médicos
+    Recomendação: Sem follow-up    Motivo: Risco baixo / Destino sem cuidados médicos
+    Recomendação: Sem follow-up    Motivo: Risco alto / Destino com cuidados médicos
+    Recomendação: Sem follow-up    Motivo: Risco baixo / Destino com cuidados médicos
 
-def _action(out: dict, k: int) -> str:
-    if not out.get("eligible", True):
-        return NOT_ELIGIBLE
-    return "propor follow-up" if out[f"follow_up_k{k}"] else "sem follow-up"
+    Risco alto = nos CAPACITY% com maior risco. Destino com cuidados médicos =
+    destino da alta que já tem acompanhamento (fora da lista, D21).
+    """
+    rec = "Follow-up" if out["follow_up"] else "Sem follow-up"
+    risk = "Risco alto" if out["high_risk"] else "Risco baixo"
+    dest = "Destino sem cuidados médicos" if out.get("eligible", True) else "Destino com cuidados médicos"
+    return rec, f"{risk} / {dest}"
 
 
 def describe(out: dict) -> str:
+    """A mesma informação da app, em texto simples."""
+    rec, why = recommendation(out)
+    lines = [f"Recomendação: {rec}.", f"Motivo: {why}."]
     risk = _risk_text(out)
-    lines = ([risk] if risk else [])
-    lines += [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias."]
-    if not out.get("eligible", True):
-        return "\n".join(lines + ["Fora da lista de follow-up: o destino da alta já tem acompanhamento."])
-    lines += [f"Com capacidade de {k}%: {_action(out, k)}." for k in CAPACITIES]
+    lines += ([risk] if risk else [])
+    lines += [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias "
+              f"(risco alto = nos {CAPACITY}% com maior risco)."]
     return "\n".join(lines)
 
 
 def message(out: dict) -> str:
-    """Mensagem IBCS: a conclusão primeiro, numa frase; o risco estimado a seguir.
-    A posição na lista está na escala logo abaixo, em %."""
-    k_in = [k for k in CAPACITIES if out[f"follow_up_k{k}"]]
+    """Quadro do resultado (HTML): a recomendação numa caixa, o motivo logo
+    abaixo e, a seguir, o risco estimado. A posição na lista está na escala
+    logo abaixo, em %."""
+    rec, why = recommendation(out)
     top = pct(_top(out) / 100, 0)
-    risk_line = _risk_text(out, bold=True)
-    if not out.get("eligible", True):
-        return f"### Fora da lista de follow-up: o destino da alta já tem acompanhamento\n{risk_line}"
-    if k_in:
-        head = "Propor follow-up" if min(k_in) == min(CAPACITIES) else "Follow-up, se houver capacidade na equipa"
-        return f"### {head}: esta alta está nos {top} com maior risco de readmissão em menos de 30 dias\n{risk_line}"
-    return (f"### Sem follow-up: esta alta não está nas {max(CAPACITIES)}% com maior risco de readmissão "
-            f"em menos de 30 dias\n{risk_line}")
+    return (f'<div class="rec-box"><span class="rec-label">Recomendação:</span> '
+            f'<span class="rec-value">{rec}</span></div>'
+            f'<p class="rec-why"><span class="rec-label">Motivo:</span> {why}</p>'
+            f'<p class="rec-detail">{_risk_text(out, bold=True)} Esta alta está nos {top} com maior risco; '
+            f'risco alto = nos {CAPACITY}% com maior risco.</p>')
 
 
 def position_scale(out: dict):
@@ -212,7 +235,9 @@ def position_scale(out: dict):
     ax.text(0, 1.7, "Posição entre as altas que podem receber follow-up, do maior para o menor risco",
             fontsize=10, color=MUTED, va="top")
     ax.barh(0, 100, color=CONTEXT, height=0.62)
-    for xt in (0, 25, 50, 75, 100):
+    ax.barh(0, CAPACITY, color=TEAL_MID, height=0.62)  # quem cabe no follow-up (risco alto)
+    ax.text(CAPACITY / 2, 0, "risco alto", fontsize=9.5, color=TEXT, ha="center", va="center")
+    for xt in (0, CAPACITY, 50, 75, 100):
         ha = "left" if xt == 0 else "right" if xt == 100 else "center"
         ax.text(xt, -0.45, f"{xt}%", fontsize=9.5, color=MUTED, ha=ha, va="top")
     ax.text(0, -1.1, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
@@ -257,23 +282,24 @@ def chart_notes(bundle: dict) -> str:
     elig = (f" ({num(n)} das {num(n_all)} altas de treino)" if n and n_all else "")
     base = bundle.get("base_rate_eligible")
     base_txt = f" ({pct(base, 1)})" if base else ""
-    cuts = " e ".join(f"{pct(bundle[key], 1)} para {k}%" for k, key in CAPACITIES.items() if key in bundle)
-    cuts_txt = f" O risco mínimo para entrar na lista é {cuts}." if cuts else ""
+    cut = capacity_threshold(bundle) if ("oof_quantiles" in bundle or f"threshold_k{CAPACITY}" in bundle) else None
+    cuts_txt = f" Risco alto = risco de {pct(cut, 1)} ou mais." if cut is not None else ""
     return f"""**Como ler**
 
 - **Qual o risco (este quadro).** A barra escura é o risco estimado desta alta. A barra cinzenta é a média das
   altas elegíveis do treino{base_txt}. As duas estão na mesma escala.
 - **Que prioridade (escala do quadro de cima).** A escala representa todas as altas elegíveis do treino,
   ordenadas do maior risco (0%, à esquerda) para o menor (100%, à direita). O triângulo marca a posição desta
-  alta: nos 15% com maior risco quer dizer que 15% das altas elegíveis têm risco igual ou maior.
+  alta: nos 15% com maior risco quer dizer que 15% das altas elegíveis têm risco igual ou maior. A zona
+  colorida são os {CAPACITY}% com maior risco (risco alto).
 
 **Pressupostos principais**
 
-- **Capacidade.** A equipa contacta 10% ou 20% das altas elegíveis, começando pelas de maior risco. Os cortes
-  vêm das previsões out-of-fold do treino.{cuts_txt}
-- **Quem é elegível.** Só as altas para casa sem acompanhamento{elig}. As restantes já têm acompanhamento à
-  saída (outro hospital ou instituição, apoio domiciliário, cuidados paliativos): o modelo estima-lhes o risco,
-  mas não entram na lista (D21).
+- **Capacidade.** A equipa contacta {CAPACITY}% das altas elegíveis, começando pelas de maior risco. O corte
+  vem das previsões out-of-fold do treino.{cuts_txt}
+- **Destino sem / com cuidados médicos.** Só as altas para casa sem acompanhamento podem receber
+  follow-up{elig}. As restantes já têm acompanhamento à saída (outro hospital ou instituição, apoio domiciliário,
+  cuidados paliativos): o modelo estima-lhes o risco, mas a recomendação é sempre sem follow-up (D21).
 - **O que conta como readmissão.** Um novo internamento em menos de 30 dias nos hospitais do dataset. Uma
   readmissão noutro hospital não aparece nos dados.
 - **O risco vale para estes dados.** Nas previsões out-of-fold, o risco previsto e o observado diferem menos
@@ -298,6 +324,13 @@ CSS = f"""
                  text-transform: uppercase; letter-spacing: 0.04em;}}
 .result-msg h3 {{color: {TEAL_DARK} !important; font-size: 21px !important; line-height: 1.3; margin: 0 0 4px 0;}}
 .result-msg p {{font-size: 16px; color: {TEXT} !important;}}
+.rec-box {{border: 3px solid {TEXT}; padding: 14px 20px; margin: 0 0 14px 0; background: white;
+           font-size: 22px; color: {TEXT};}}
+.rec-label {{font-weight: 700; color: {TEXT};}}
+.rec-value {{font-weight: 700; color: {TEAL_DARK};}}
+.result-msg p.rec-why {{font-size: 19px !important; margin: 0 0 10px 0;}}
+.result-msg p.rec-detail {{font-size: 15px !important; color: {MUTED} !important; margin: 0;}}
+.result-msg p.rec-detail strong {{color: {TEXT};}}
 .footnote p {{color: {MUTED} !important; font-size: 13px !important;}}
 .stack {{gap: 16px !important; padding: 0 !important; background: transparent !important; border: none !important;}}
 .card-chart {{border-top: 4px solid {TEAL_MID} !important;}}
@@ -383,7 +416,7 @@ def build_app(bundle: dict):
             with gr.Column(scale=7, elem_classes="stack"):
                 # 1.º quadro: conclusão e escala de prioridade (posição em %).
                 with gr.Column(elem_classes=["card", "card-result"]):
-                    msg = gr.Markdown(elem_classes="result-msg")
+                    msg = gr.HTML(elem_classes="result-msg")
                     scale = gr.Plot(show_label=False, container=False)
 
                 # 2.º quadro: o risco face à média, com a legenda e os pressupostos (IBCS: explicar o que se lê).
