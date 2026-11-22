@@ -149,33 +149,34 @@ def _top(out: dict) -> float:
     return max(100 - _shown_percentile(out), 1)
 
 
-def _risk_text(out: dict, bold: bool = False) -> str:
-    """O risco em linguagem simples, para quem não é técnico:
+def _risk_lines(out: dict, bold: bool = False) -> list[str]:
+    """O risco em linguagem simples, em frases curtas, uma por linha:
 
-    'Risco estimado de readmissão em menos de 30 dias: 16%, acima da média de
-    9,6% das altas que podem receber follow-up. Em cada 100 doentes com este
-    perfil, cerca de 16 voltam a ser internados nesse prazo.'
+    'Risco de readmissão em menos de 30 dias: 9%, abaixo da média de 9,6%.'
+    'Em cada 100 doentes como este, cerca de 9 voltam a ser internados.'
+    'Está nos 41% com maior risco: fora dos 30% de risco alto.'
 
     A 2.ª frase é fiel ao modelo porque o risco está calibrado (D22): nas
     previsões out-of-fold, o previsto bate certo com o observado por decis.
+    A média é a das altas que podem receber follow-up (elegíveis, D21).
     """
     if "risk" not in out:
-        return ""
+        return []
     risk, base = out["risk"], out.get("base_rate")
     shown = "menos de 1%" if risk < 0.005 else pct(risk, 0)
     value = f"<strong>{shown}</strong>" if bold else shown
-    text = f"Risco estimado de readmissão em menos de 30 dias: {value}"
+    first = f"Risco de readmissão em menos de 30 dias: {value}"
     if base:
         side = "próximo da" if abs(risk - base) < 0.005 else "acima da" if risk > base else "abaixo da"
-        text += f", {side} média de {pct(base, 1)} das altas que podem receber follow-up"
+        first += f", {side} média de {pct(base, 1)}"
     n = round(100 * risk)
-    if n < 1:
-        count = "menos de 1 volta a ser internado"
-    elif n == 1:
-        count = "cerca de 1 volta a ser internado"
-    else:
-        count = f"cerca de {n} voltam a ser internados"
-    return text + f". Em cada 100 doentes com este perfil, {count} nesse prazo."
+    count = ("menos de 1 volta a ser internado" if n < 1 else "cerca de 1 volta a ser internado" if n == 1
+             else f"cerca de {n} voltam a ser internados")
+    lines = [first + ".", f"Em cada 100 doentes como este, {count}."]
+    if "percentile" in out:
+        inside = "dentro" if out.get("high_risk") else "fora"
+        lines.append(f"Está nos {pct(_top(out) / 100, 0)} com maior risco: {inside} dos {CAPACITY}% de risco alto.")
+    return lines
 
 
 def recommendation(out: dict) -> tuple[str, str]:
@@ -199,10 +200,7 @@ def describe(out: dict) -> str:
     """A mesma informação da app, em texto simples."""
     rec, why = recommendation(out)
     lines = [f"Recomendação: {rec}.", f"Motivo: {why}."]
-    risk = _risk_text(out)
-    lines += ([risk] if risk else [])
-    lines += [f"Esta alta está nos {pct(_top(out) / 100, 0)} com maior risco de readmissão em menos de 30 dias "
-              f"(risco alto = nos {CAPACITY}% com maior risco)."]
+    lines += _risk_lines(out)
     return "\n".join(lines)
 
 
@@ -216,11 +214,9 @@ def message(out: dict) -> str:
 
 
 def message_detail(out: dict) -> str:
-    """Fim do quadro do resultado (HTML), por baixo da escala: o risco estimado
-    em linguagem simples e a posição desta alta."""
-    top = pct(_top(out) / 100, 0)
-    return (f'<p class="rec-detail">{_risk_text(out, bold=True)} Esta alta está nos {top} com maior risco; '
-            f'risco alto = nos {CAPACITY}% com maior risco.</p>')
+    """Fim do quadro do resultado (HTML), por baixo da escala: o risco e a
+    posição desta alta em frases curtas, uma por linha."""
+    return f'<p class="rec-detail">{"<br>".join(_risk_lines(out, bold=True))}</p>'
 
 
 def position_scale(out: dict):
