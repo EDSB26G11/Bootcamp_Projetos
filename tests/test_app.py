@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.app import (CAPACITY, INPUTS, capacity_threshold, chart_notes, describe, is_eligible, make_record, message,
-                     message_detail, predict_risk, recommendation, risk_percentile)
+                     predict_risk, result_html, recommendation, risk_percentile)
 from src.features.build import CATEGORICAL_FEATURES, FEATURES
 from src.models.baselines import candidate_models
 from src.models.evaluate import predict_scores
@@ -101,7 +101,8 @@ def test_app_shows_estimated_risk_with_reference(saved):
     assert 0 <= out["risk"] <= 1 and out["base_rate"] == pytest.approx(bundle["base_rate_eligible"])
     text = describe(out)
     assert "Risco de readmissão" in text and "média de" in text and "Em cada 100 doentes" in text
-    assert "Risco de readmissão" in message_detail(out) and "risco alto" in message_detail(out)
+    html = result_html(out)
+    assert "Risco de readmissão" in html and "em cada 100" in html and f"{CAPACITY}%" in html
     assert "elegíveis" not in text  # jargão do projeto (D21): na app diz-se "que podem receber follow-up"
 
 
@@ -145,3 +146,16 @@ def test_recommendation_and_reason(eligible, high, rec, why):
     assert recommendation(out) == (rec, why)
     html = message(out)
     assert f'<span class="rec-value">{rec}</span>' in html and why in html
+
+
+def test_result_html_matches_the_numbers():
+    """O quadro mostra o mesmo número nos 100 pontos, no texto e na posição."""
+    out = {"eligible": True, "high_risk": True, "follow_up": True, "risk": 0.19, "base_rate": 0.096,
+           "percentile": 92.7}
+    html = result_html(out)
+    assert html.count('class="dot on"') == 19 and html.count('class="dot') == 100
+    assert "19 em cada 100" in html and "19%" in html and "top 8%" in html and "Acima da média" in html
+    assert 'rec-box rec-yes' in html
+    low = {**out, "high_risk": False, "follow_up": False, "risk": 0.004, "percentile": 5.0}
+    html = result_html(low)
+    assert html.count('class="dot on"') == 0 and "Menos de 1 em cada 100" in html and 'rec-box rec-no' in html

@@ -205,82 +205,88 @@ def describe(out: dict) -> str:
 
 
 def message(out: dict) -> str:
-    """Topo do quadro do resultado (HTML): a recomendação numa caixa e o motivo
-    logo abaixo. A seguir vem a escala de posição e depois message_detail."""
+    """Topo do resultado (HTML): a recomendação numa caixa e o motivo logo abaixo.
+
+    Follow-up = caixa preenchida a verde-azulado escuro; sem follow-up = caixa
+    branca com contorno. Distingue-se de relance, sem semáforos."""
     rec, why = recommendation(out)
-    return (f'<div class="rec-box"><span class="rec-label">Recomendação:</span> '
+    kind = "rec-yes" if out["follow_up"] else "rec-no"
+    return (f'<div class="rec-box {kind}"><span class="rec-label">Recomendação:</span> '
             f'<span class="rec-value">{rec}</span></div>'
             f'<p class="rec-why"><span class="rec-label">Motivo:</span> {why}</p>')
 
 
-def message_detail(out: dict) -> str:
-    """Fim do quadro do resultado (HTML), por baixo da escala: o risco e a
-    posição desta alta em frases curtas, uma por linha."""
-    return f'<p class="rec-detail">{"<br>".join(_risk_lines(out, bold=True))}</p>'
+def _risk_value(out: dict) -> str:
+    """Risco desta alta em %, sem casas decimais (o mesmo número dos 100 pontos)."""
+    return "<1%" if out["risk"] < 0.005 else pct(out["risk"], 0)
 
 
-def position_scale(out: dict):
-    """Que prioridade: a escala das altas elegíveis, do maior para o menor
-    risco, em % (0% = maior risco), só com o ponteiro desta alta."""
-    from matplotlib.figure import Figure  # sem pyplot: não acumula figuras no servidor
+def _per_100(out: dict) -> int:
+    return int(round(100 * out["risk"]))
 
-    fig = Figure(figsize=(8, 1.95))
-    fig.patch.set_alpha(0)
+
+def risk_html(out: dict) -> str:
+    """Qual o risco, em dois blocos lado a lado:
+    - o número grande (risco desta alta) com a média ao lado, por extenso;
+    - 100 pontos, um por doente: os escuros são os que voltam a ser internados.
+    As frequências naturais ("9 em cada 100") leem-se mais depressa do que %."""
+    if "risk" not in out:
+        return ""
+    base, n = out.get("base_rate"), _per_100(out)
+    side = ""
+    if base:
+        word = ("próximo da" if abs(out["risk"] - base) < 0.005
+                else "acima da" if out["risk"] > base else "abaixo da")
+        side = f'<div class="kpi-sub">{word.capitalize()} média das altas ({pct(base, 1)})</div>'
+    dots = "".join(f'<span class="dot{" on" if i < n else ""}"></span>' for i in range(100))
+    count = "Menos de 1" if n < 1 else str(n)
+    verb = "volta" if n <= 1 else "voltam"
+    return (
+        '<div class="kpi-row">'
+        '<div class="kpi">'
+        '<div class="kpi-label">Risco de readmissão em menos de 30 dias</div>'
+        f'<div class="kpi-value">{_risk_value(out)}</div>{side}</div>'
+        '<div class="kpi kpi-icons">'
+        f'<div class="icons" role="img" aria-label="{count} em cada 100 doentes">{dots}</div>'
+        f'<div class="kpi-sub"><strong>{count} em cada 100</strong> doentes como este {verb} a ser '
+        'internados em menos de 30 dias</div></div>'
+        '</div>')
+
+
+def scale_html(out: dict) -> str:
+    """Que prioridade: a barra das altas que podem receber follow-up, do maior
+    para o menor risco, com a zona de risco alto (CAPACITY%) e o ponteiro desta
+    alta. Escala de 20 em 20%, com o corte de CAPACITY% destacado."""
     top = _top(out)
     x = min(max(top, 0.5), 99.5)  # esquerda = maior risco
-    ax = fig.add_axes([0.015, 0.0, 0.97, 1.0])
-    ax.set_xlim(0, 100)
-    ax.set_ylim(-1.75, 1.75)
-    ax.axis("off")
-    ax.text(0, 1.7, "Posição entre as altas que podem receber follow-up, do maior para o menor risco",
-            fontsize=10, color=MUTED, va="top")
-    ax.barh(0, 100, color=CONTEXT, height=0.62)
-    ax.barh(0, CAPACITY, color=TEAL_MID, height=0.62)  # quem cabe no follow-up (risco alto)
-    ax.text(CAPACITY / 2, 0, "risco alto", fontsize=9.5, color=TEXT, ha="center", va="center")
-    for xt in range(0, 101, 20):  # escala de 20 em 20
-        ha = "left" if xt == 0 else "right" if xt == 100 else "center"
-        ax.text(xt, -0.45, f"{xt}%", fontsize=9.5, color=MUTED, ha=ha, va="top")
-    # Destaque do corte da capacidade (30%): linha sobre a barra e rótulo a negrito.
-    ax.plot([CAPACITY, CAPACITY], [-0.42, 0.42], color=TEAL_DARK, linewidth=2.5)
-    ax.text(CAPACITY, -0.45, f"{CAPACITY}%", fontsize=10.5, fontweight="bold", color=TEAL_DARK, ha="center",
-            va="top", bbox=dict(facecolor="white", edgecolor="none", pad=1.5))
-    ax.text(0, -1.1, "← maior risco", fontsize=9.5, color=MUTED, ha="left", va="top")
-    ax.text(100, -1.1, "menor risco →", fontsize=9.5, color=MUTED, ha="right", va="top")
-    ax.plot(x, 0.55, marker="v", color=TEXT, markersize=12)
-    ax.text(x + (1.2 if x < 60 else -1.2), 0.85, f"esta alta: nos {pct(top / 100, 0)} com maior risco",
-            fontsize=11, fontweight="bold", color=TEXT, ha="left" if x < 60 else "right", va="center")
-    return fig
+    align = "left" if x < 15 else "right" if x > 85 else "center"
+    ticks = "".join(f'<span class="tick t-{t}" style="left:{t}%">{t}%</span>' for t in range(0, 101, 20)
+                    if abs(t - CAPACITY) >= 10)
+    ticks += f'<span class="tick tick-cut" style="left:{CAPACITY}%">{CAPACITY}%</span>'
+    return (
+        '<div class="scale">'
+        '<div class="scale-title">Posição entre as altas que podem receber follow-up</div>'
+        '<div class="scale-flagrow">'
+        f'<div class="scale-flag flag-{align}" style="left:{x}%">Esta alta: <strong>top {pct(top / 100, 0)}</strong></div>'
+        '</div>'
+        '<div class="scale-track">'
+        f'<div class="scale-zone" style="width:{CAPACITY}%">risco alto</div>'
+        f'<div class="scale-cut" style="left:{CAPACITY}%"></div>'
+        f'<div class="scale-pin" style="left:{x}%"></div>'
+        '</div>'
+        f'<div class="scale-ticks">{ticks}</div>'
+        '<div class="scale-ends"><span>← maior risco</span><span>menor risco →</span></div>'
+        '</div>')
 
 
-def risk_chart(out: dict):
-    """Qual o risco: barra do risco estimado desta alta contra a média das
-    altas elegíveis (mesma escala, rótulos diretos)."""
-    from matplotlib.figure import Figure  # sem pyplot: não acumula figuras no servidor
-
-    fig = Figure(figsize=(8, 1.6))
-    fig.patch.set_alpha(0)
-
-    ax1 = fig.add_axes([0.015, 0.02, 0.97, 0.96])
-    ax1.axis("off")
-    risk, base = out.get("risk"), out.get("base_rate")
-    ax1.text(0, 1.0, "Risco estimado de readmissão em menos de 30 dias, em %", fontsize=10, color=MUTED,
-             va="top", transform=ax1.transAxes)
-    if risk is not None:
-        rows = [("Esta alta", risk, TEAL_DARK)] + ([("Média das altas elegíveis", base, CONTEXT)] if base else [])
-        width = 0.6 / max(v for _, v, _ in rows)  # a barra maior ocupa 60% da largura; deixa espaço ao valor
-        for i, (label, v, color) in enumerate(rows):
-            y = -i
-            ax1.barh(y, v * width, left=0.27, color=color, height=0.55)
-            ax1.text(0.26, y, label, fontsize=9.5, color=TEXT, ha="right", va="center")
-            ax1.text(0.27 + v * width + 0.008, y, pct(v, 1 if v < 0.1 else 0), fontsize=10,
-                     fontweight="bold" if i == 0 else None, color=TEAL_DARK if i == 0 else MUTED, va="center")
-        ax1.set_xlim(0, 1)
-        ax1.set_ylim(-len(rows) + 0.3, 1.1)
-    return fig
+def result_html(out: dict) -> str:
+    """O quadro do resultado, de cima para baixo: recomendação, motivo, risco
+    (número + 100 pontos) e posição na lista."""
+    return message(out) + risk_html(out) + scale_html(out)
 
 
 def chart_notes(bundle: dict) -> str:
-    """Legenda do gráfico: como ler e os pressupostos principais, com os números do modelo gravado."""
+    """Como ler e pressupostos principais, com os números do modelo gravado."""
     n, n_all = bundle.get("n_eligible"), bundle.get("n_train")
     num = lambda v: f"{v:,}".replace(",", " ")
     elig = (f" ({num(n)} das {num(n_all)} altas de treino)" if n and n_all else "")
@@ -290,11 +296,11 @@ def chart_notes(bundle: dict) -> str:
     cuts_txt = f" Risco alto = risco de {pct(cut, 1)} ou mais." if cut is not None else ""
     return f"""**Como ler**
 
-- **Qual o risco (este quadro).** A barra escura é o risco estimado desta alta. A barra cinzenta é a média das
-  altas elegíveis do treino{base_txt}. As duas estão na mesma escala.
-- **Que prioridade (escala do quadro de cima).** A escala representa todas as altas elegíveis do treino,
-  ordenadas do maior risco (0%, à esquerda) para o menor (100%, à direita). O triângulo marca a posição desta
-  alta: nos 15% com maior risco quer dizer que 15% das altas elegíveis têm risco igual ou maior. A zona
+- **Risco.** O número grande é o risco estimado de esta alta voltar a ser internada em menos de 30 dias,
+  comparado com a média das altas que podem receber follow-up{base_txt}. Os 100 pontos mostram o mesmo risco
+  em doentes: cada ponto escuro é um doente, em 100 com este perfil, que volta a ser internado.
+- **Posição.** A barra ordena as altas que podem receber follow-up, do maior risco (0%, à esquerda) para o
+  menor (100%, à direita). "Top 15%" quer dizer que só 15% das altas têm risco igual ou maior. A zona
   colorida são os {CAPACITY}% com maior risco (risco alto).
 
 **Pressupostos principais**
@@ -315,33 +321,70 @@ def chart_notes(bundle: dict) -> str:
 
 CSS = f"""
 .gradio-container {{max-width: 1200px !important; width: 100% !important; margin: 0 auto !important;
-                    padding: 24px 32px !important; color: {TEXT}; font-size: 15px;}}
+                    padding: 20px 28px !important; color: {TEXT}; font-size: 15px;}}
 .gradio-container .prose, .gradio-container p, .gradio-container li {{color: {TEXT};}}
-.app-header {{border-left: 6px solid {TEAL}; padding: 4px 0 4px 16px; margin-bottom: 12px;}}
-.app-header h1 {{color: {TEAL_DARK}; font-size: 26px; font-weight: 700; margin: 0 0 6px 0;}}
-.app-header p {{margin: 2px 0; color: {MUTED}; font-size: 15px;}}
-.app-header strong {{color: {TEXT};}}
+.app-header {{border-left: 6px solid {TEAL}; padding: 2px 0 2px 16px; margin-bottom: 6px;}}
+.app-header h1 {{color: {TEAL_DARK}; font-size: 26px; font-weight: 700; margin: 0 0 4px 0;}}
+.app-header p {{margin: 2px 0; color: {MUTED}; font-size: 14px;}}
 .card {{background: white !important; border: 1px solid {CONTEXT} !important; border-radius: 10px !important;
         padding: 16px 18px !important;}}
 .card-result {{border-top: 4px solid {TEAL} !important;}}
-.group-head h3 {{color: {TEAL_DARK} !important; font-size: 16px !important; margin: 10px 0 2px 0 !important;
+.result-col {{position: sticky; top: 12px; align-self: flex-start;}}
+.group-head h3 {{color: {TEAL_DARK} !important; font-size: 15px !important; margin: 8px 0 2px 0 !important;
                  text-transform: uppercase; letter-spacing: 0.04em;}}
-.result-msg h3 {{color: {TEAL_DARK} !important; font-size: 21px !important; line-height: 1.3; margin: 0 0 4px 0;}}
-.result-msg p {{font-size: 16px; color: {TEXT} !important;}}
-.rec-box {{border: 3px solid {TEXT}; padding: 14px 20px; margin: 0 0 14px 0; background: white;
-           font-size: 22px; color: {TEXT};}}
-.rec-label {{font-weight: 700; color: {TEXT};}}
-.rec-value {{font-weight: 700; color: {TEAL_DARK};}}
-.result-msg p.rec-why {{font-size: 19px !important; margin: 0 0 10px 0;}}
-.result-msg p.rec-detail {{font-size: 15px !important; color: {MUTED} !important; margin: 0;}}
-.result-msg p.rec-detail strong {{color: {TEXT};}}
-.footnote p {{color: {MUTED} !important; font-size: 13px !important;}}
-.stack {{gap: 16px !important; padding: 0 !important; background: transparent !important; border: none !important;}}
-.card-chart {{border-top: 4px solid {TEAL_MID} !important;}}
-.chart-notes {{border-top: 1px solid {CONTEXT}; padding-top: 10px; margin-top: 4px;}}
+.live-hint p {{color: {MUTED} !important; font-size: 13px !important; margin: 6px 0 0 0;}}
+
+/* 1. Recomendação e motivo */
+.rec-box {{border: 3px solid {TEXT}; border-radius: 8px; padding: 16px 22px; margin: 0 0 10px 0;
+           font-size: clamp(20px, 2.4vw, 26px); line-height: 1.25; color: {TEXT}; background: white;}}
+.rec-box .rec-label {{font-weight: 600;}}
+.rec-box .rec-value {{font-weight: 800;}}
+.rec-box.rec-yes {{background: {TEAL_DARK}; border-color: {TEAL_DARK}; color: white;}}
+.rec-box.rec-yes .rec-label, .rec-box.rec-yes .rec-value {{color: white;}}
+.rec-box.rec-no .rec-value {{color: {TEXT};}}
+.rec-why {{font-size: 18px; margin: 0 0 18px 0 !important; color: {TEXT};}}
+.rec-why .rec-label {{font-weight: 700;}}
+
+/* 2. Risco: número grande + 100 pontos */
+.kpi-row {{display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;}}
+.kpi {{flex: 1 1 170px; background: {TEAL_LIGHT}; border-radius: 8px; padding: 14px 16px;}}
+.kpi.kpi-icons {{flex: 1.8 1 300px;}}
+.kpi-label {{font-size: 14px; font-weight: 600; color: {MUTED};}}
+.kpi-value {{font-size: 56px; font-weight: 800; line-height: 1.05; color: {TEAL_DARK}; margin: 6px 0 4px 0;}}
+.kpi-sub {{font-size: 15px; color: {TEXT}; line-height: 1.35;}}
+.kpi-icons {{display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;}}
+.kpi-icons .kpi-sub {{flex: 1 1 110px;}}
+.icons {{display: grid; grid-template-columns: repeat(10, 11px); gap: 4px; flex: none;}}
+.dot {{width: 11px; height: 11px; border-radius: 50%; background: white; border: 1px solid #B9C4C7;
+       box-sizing: border-box;}}
+.dot.on {{background: {TEAL_DARK}; border-color: {TEAL_DARK};}}
+
+/* 3. Posição na lista */
+.scale {{position: relative; padding-top: 4px;}}
+.scale-title {{font-size: 14px; font-weight: 600; color: {MUTED}; margin-bottom: 6px;}}
+.scale-flagrow {{position: relative; height: 22px;}}
+.scale-flag {{position: absolute; bottom: 0; font-size: 15px; color: {TEXT}; white-space: nowrap;
+              transform: translateX(-50%);}}
+.scale-flag.flag-left {{transform: translateX(-8px);}}
+.scale-flag.flag-right {{transform: translateX(calc(-100% + 8px));}}
+.scale-track {{position: relative; height: 26px; background: {CONTEXT}; border-radius: 4px; margin-top: 16px;}}
+.scale-zone {{position: absolute; left: 0; top: 0; bottom: 0; background: {TEAL_MID}; border-radius: 4px 0 0 4px;
+              font-size: 13px; color: {TEXT}; display: flex; align-items: center; justify-content: center;}}
+.scale-cut {{position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; background: {TEAL_DARK};}}
+.scale-pin {{position: absolute; top: -15px; width: 0; height: 0; margin-left: -8px;
+             border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 12px solid {TEXT};}}
+.scale-ticks {{position: relative; height: 20px; margin-top: 4px; font-size: 12px; color: {MUTED};}}
+.tick {{position: absolute; transform: translateX(-50%);}}
+.tick:first-child {{transform: none;}}
+.tick[style="left:100%"] {{transform: translateX(-100%);}}
+.tick-cut {{font-weight: 700; font-size: 13px; color: {TEAL_DARK};}}
+.scale-ends {{display: flex; justify-content: space-between; font-size: 12px; color: {MUTED}; margin-top: 2px;}}
+@media (max-width: 560px) {{ .tick.t-20, .tick.t-40, .tick.t-80 {{display: none;}} .kpi-value {{font-size: 46px;}} }}
+
 .chart-notes p, .chart-notes li {{font-size: 14px !important; line-height: 1.45; color: {TEXT} !important;}}
 .chart-notes strong {{color: {TEAL_DARK};}}
 .chart-notes ul {{margin: 2px 0 10px 0;}}
+.footnote p {{color: {MUTED} !important; font-size: 13px !important;}}
 [data-testid='block-info'], label span {{color: {TEXT} !important; font-weight: 600 !important;}}
 """
 
@@ -373,18 +416,12 @@ def build_app(bundle: dict):
     import gradio as gr  # só é preciso para correr a app, não para os testes
 
     d = bundle["defaults"]
-    n = bundle.get("n_eligible")
-    base = (f"{n:,}".replace(",", " ") + " altas de treino elegíveis para follow-up" if n
-            else "as altas de treino elegíveis para follow-up")
 
     with gr.Blocks(title="Prioridade de follow-up", fill_width=False) as demo:
-        # Título em três linhas (quem, o quê, quando), como nas páginas do relatório.
         gr.HTML(
             '<div class="app-header"><h1>Prioridade de follow-up após a alta</h1>'
-            '<p>Diabetes 130-US hospitals · modelo v1 (HistGradientBoosting)</p>'
-            f'<p><strong>Risco de readmissão &lt; 30 dias e posição na lista</strong>, face a {base}, '
-            'e ação sugerida</p>'
-            '<p>Dados de 1999–2008 · risco comparado com as previsões out-of-fold do treino</p></div>')
+            '<p>Doentes com diabetes · risco de readmissão em menos de 30 dias · '
+            'modelo v1 (dados de 1999–2008)</p></div>')
 
         with gr.Row(equal_height=False):
             with gr.Column(scale=5, elem_classes="card"):
@@ -404,10 +441,10 @@ def build_app(bundle: dict):
 
                 gr.Markdown("### No ano anterior", elem_classes="group-head")
                 with gr.Row():
-                    inp = gr.Number(value=d["number_inpatient"], label=LABELS["number_inpatient"], precision=0, min_width=110,
-                                    minimum=0)
-                    em = gr.Number(value=d["number_emergency"], label=LABELS["number_emergency"], precision=0, min_width=110,
-                                   minimum=0)
+                    inp = gr.Number(value=d["number_inpatient"], label=LABELS["number_inpatient"], precision=0,
+                                    min_width=110, minimum=0)
+                    em = gr.Number(value=d["number_emergency"], label=LABELS["number_emergency"], precision=0,
+                                   min_width=110, minimum=0)
                     out_ = gr.Number(value=d["number_outpatient"], label=LABELS["number_outpatient"],
                                      precision=0, min_width=110, minimum=0)
 
@@ -415,20 +452,18 @@ def build_app(bundle: dict):
                 with gr.Row():
                     a1c = _dropdown(gr, bundle, "A1Cresult")
                     ins = _dropdown(gr, bundle, "insulin")
-                btn = gr.Button("Avaliar alta", variant="primary", size="lg")
+                gr.Markdown("O resultado atualiza-se sozinho a cada dado alterado. Os campos não mostrados ficam "
+                            "com o valor mais comum.", elem_classes="live-hint")
 
-            with gr.Column(scale=7, elem_classes="stack"):
-                # 1.º quadro: conclusão e escala de prioridade (posição em %).
+            # O resultado fica fixo no ecrã enquanto se preenchem os dados (sticky).
+            with gr.Column(scale=7, elem_classes="result-col"):
                 with gr.Column(elem_classes=["card", "card-result"]):
-                    msg = gr.HTML(elem_classes="result-msg")
-                    scale = gr.Plot(show_label=False, container=False)
-                    detail = gr.HTML(elem_classes="result-msg")
-
-                # 2.º quadro: o risco face à média, com a legenda e os pressupostos (IBCS: explicar o que se lê).
-                with gr.Column(elem_classes=["card", "card-chart"]):
-                    gr.Markdown("### Risco desta alta face à média", elem_classes="group-head")
-                    chart = gr.Plot(show_label=False, container=False)
+                    result = gr.HTML()
+                with gr.Accordion("Como ler e pressupostos", open=False):
                     gr.Markdown(chart_notes(bundle), elem_classes="chart-notes")
+                gr.Markdown("Apoio à decisão: uma pessoa revê cada caso. Não é causal nem substitui o juízo "
+                            "clínico. Dados: UCI Diabetes 130-US hospitals (Strack et al., 2014).",
+                            elem_classes="footnote")
 
         fields = {"age_band": age, "time_in_hospital": days, "num_medications": meds, "number_diagnoses": diags,
                   "number_inpatient": inp, "number_emergency": em, "number_outpatient": out_,
@@ -437,12 +472,14 @@ def build_app(bundle: dict):
         components = [fields[c] for c in INPUTS]
 
         def _predict(*args):
-            res = predict_risk(bundle, **dict(zip(INPUTS, args)))
-            return message(res), position_scale(res), message_detail(res), risk_chart(res)
+            # Um campo apagado a meio da escrita chega como None: usa-se o valor por defeito.
+            values = {c: (d[c] if v is None else v) for c, v in zip(INPUTS, args)}
+            return result_html(predict_risk(bundle, **values))
 
-        outputs = [msg, scale, detail, chart]
-        btn.click(_predict, components, outputs)
-        demo.load(_predict, components, outputs)
+        # Atualiza em direto: ao abrir e sempre que um dado muda (sem botão).
+        for comp in components:
+            comp.change(_predict, components, result, show_progress="hidden")
+        demo.load(_predict, components, result)
     return demo
 
 
