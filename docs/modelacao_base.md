@@ -1,27 +1,10 @@
-# Fase 2 — Modelação base: contexto
+# Modelação: regras, números de referência e decisões
 
-> **Ponto a 6/11.** A fase 2 está quase fechada: baselines e candidatos corridos,
-> modelo v1 = HistGradientBoosting (D17), ablação feita (D18). Faltam o tuning
-> pequeno e a nota da T2.3. A fase 3 avançou com as regras de D19. Os números
-> atuais estão em `reports/experiments.csv`; a tabela "Números de referência"
-> abaixo foi atualizada. Critérios de sucesso em [problem_framing.md](problem_framing.md).
+Regras seguidas na modelação (T2.1–T2.4), os números de referência dos modelos comparados e as decisões
+tomadas. As decisões estão em [decisions.md](decisions.md); os critérios de sucesso em
+[problem_framing.md](problem_framing.md).
 
-Ponto de partida para a fase 2 (modelação, T2.1–T2.4): o que já está pronto,
-o que esta fase tem de entregar, as regras a respeitar e os números de
-referência. As decisões que levaram até aqui estão em
-[decisions.md](decisions.md) (D1–D16).
-
-## Onde estamos
-
-- **Calendário.** A fase 2 estava prevista para as semanas 4–7. Estamos no
-  fim da semana 8. O **status report 3 é na semana 9 (2–6 de novembro)** e
-  pede o **modelo v1 congelado**. A fase 3 (desequilíbrio, métricas e
-  threshold, W6–W8) também ainda não começou. Por isso, esta fase tem de ser
-  curta: comparar poucos modelos bem, não muitos à pressa.
-- **Fase 1 completa.** População, target, split, features e pipeline estão
-  implementados e testados (44 testes).
-
-## O que já está pronto
+## Base
 
 | Peça | Onde | O que dá |
 |---|---|---|
@@ -29,57 +12,28 @@ referência. As decisões que levaram até aqui estão em
 | Split por doente (D13) | `data/splits/splits.csv` | Treino 80 041 encontros com 5 folds; teste 20 011. Todas as partes com 11,34% de positivos |
 | Features (D14, D15) | `src/features/build.py` | 34 features, sem fuga de informação (D8–D12) |
 | Pré-processamento (D16) | `src/pipeline.py` | `ColumnTransformer` ajustado só no treino; 160 colunas |
-
-Para começar:
-
-```python
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate
-from sklearn.pipeline import make_pipeline
-from src.pipeline import build_preprocessor, cv_splits, load_model_data
-
-data = load_model_data()
-pipe = make_pipeline(build_preprocessor(), LogisticRegression(max_iter=2000))
-cross_validate(pipe, data.X_train, data.y_train, cv=cv_splits(data),
-               scoring=["average_precision", "roc_auc"])
-```
-
-## O que a fase tem de entregar
-
-Um conjunto pequeno de modelos **comparáveis entre si**, todos avaliados da
-mesma forma, e a escolha justificada do candidato a modelo v1.
-
-| Tarefa | O quê | Output | Papel |
-|---|---|---|---|
-| T2.1 Baselines | Regra simples e regressão logística. São a fasquia: tudo o que vier depois tem de as bater | Tabela baseline | R2 |
-| T2.2 Modelos candidatos | Um gradient boosting (HistGradientBoosting, LightGBM ou XGBoost) e uma random forest, com tuning modesto | `notebooks/03_baselines_models.ipynb` | R2 |
-| T2.3 Hugging Face Hub | Ver se há modelos ou datasets tabulares úteis; ler model cards e licenças; decidir e justificar | Nota em `decisions.md` | R3 |
-| T2.4 Registo de experiências | Uma linha por corrida: data, modelo, features, parâmetros, seed, métricas | `reports/experiments.csv` (comparação atual) e `reports/experiments_v1.csv` (histórico), via `run_cv` em `src/models/train.py` | R2 |
+| Registo de experiências | `reports/experiments.csv` (comparação) e `reports/experiments_v1.csv` (histórico) | uma linha de treino e uma de validação por modelo, via `run_cv` em `src/models/train.py` |
 
 ## Regras
 
-1. **O teste não se abre.** `data.X_test` só se usa uma vez, na avaliação
-   final (T3.6). Toda a comparação nesta fase é feita nos 5 folds de
-   `cv_splits(data)`.
-2. **Sempre os mesmos folds.** Usar `cv_splits(data)`, não `KFold` nem
-   `StratifiedKFold`: os folds de D13 garantem que nenhum doente está no
-   treino e na validação ao mesmo tempo.
-3. **O pré-processamento vai dentro do pipeline.** Nada de `fit` no
-   conjunto todo antes da CV, nem reamostragem fora do fold.
-4. **Métrica principal: PR-AUC** (`average_precision`). Reportar também
-   ROC-AUC e recall@10% / recall@20% (a fração de readmissões apanhada se a
-   equipa de follow-up só chegar a 10% ou 20% das altas). A accuracy não serve:
-   prever sempre "não" dá 88,7%.
-5. **Média e desvio dos 5 folds.** Uma diferença menor do que o desvio entre
-   folds não é uma diferença.
-6. **Features novas respeitam D12.** Nenhuma agregação por doente sobre o
-   dataset e nenhuma ordem a partir do `encounter_id`. Se surgir uma ideia de
-   feature, vai à equipa como decisão (decisions.md).
+1. **O teste não se abre.** `data.X_test` só se usa uma vez, na avaliação final (T3.6). Toda a
+   comparação é feita nos 5 folds de `cv_splits(data)`.
+2. **Sempre os mesmos folds.** Usar `cv_splits(data)`, não `KFold` nem `StratifiedKFold`: os folds de D13
+   garantem que nenhum doente está no treino e na validação ao mesmo tempo.
+3. **O pré-processamento vai dentro do pipeline.** Nada de `fit` no conjunto todo antes da CV, nem
+   reamostragem fora do fold.
+4. **Métrica principal: PR-AUC** (`average_precision`). Reportar também ROC-AUC e o recall nos k% de maior
+   risco (a fração de readmissões encontrada com follow-up a k% das altas; k = 30%, D26). A accuracy não
+   serve: prever sempre "não" dá 88,7%.
+5. **Média e desvio dos 5 folds.** Uma diferença menor do que o desvio entre folds não é uma diferença.
+6. **Features novas respeitam D12.** Nenhuma agregação por doente sobre o dataset e nenhuma ordem a partir
+   do `encounter_id`. Uma feature nova é uma decisão da equipa (decisions.md).
 7. **Seed 42** em tudo o que é aleatório.
 
 ## Números de referência
 
-Médias nos 5 folds de CV do treino:
+Médias nos 5 folds de CV do treino, em todas as altas (a escolha do modelo usa todas; as métricas da lista
+de follow-up usam só as elegíveis, D21):
 
 | Modelo | PR-AUC | ROC-AUC | Recall@10% | Precisão@10% | Recall@20% |
 |---|---|---|---|---|---|
@@ -90,42 +44,36 @@ Médias nos 5 folds de CV do treino:
 | Random forest (sem tuning) | 0,221 | 0,672 | 0,234 | 0,265 | 0,386 |
 | **HistGradientBoosting, modelo v1 (sem tuning)** | **0,234** | **0,677** | **0,247** | **0,280** | **0,400** |
 
-As regras com `number_inpatient` foram recalculadas a 6/11 com o
-`average_precision` do scikit-learn e empates desfeitos ao acaso; a versão
-anterior desta tabela (0,150 e 0,183) usava outro método nos empates.
+As regras com `number_inpatient` usam o `average_precision` do scikit-learn e empates desfeitos ao acaso.
 
-Como ler: com a regressão logística, dar follow-up aos 10% de altas com maior risco
-apanha 23% das readmissões em menos de 30 dias. Um em cada quatro doentes
-com follow-up seria de facto readmitido, contra um em cada nove ao acaso.
+Como ler: com a regressão logística, dar follow-up aos 10% de altas com maior risco encontra 23% das
+readmissões em menos de 30 dias. Um em cada quatro doentes com follow-up seria readmitido, contra um em
+cada nove ao acaso.
 
-**Expectativa realista.** Na literatura sobre este dataset, os melhores
-modelos ficam tipicamente em ROC-AUC ≈ 0,65–0,70. O ganho do gradient
-boosting sobre a regressão logística deve ser pequeno. Não é falha da equipa:
-o dataset não tem sinais clínicos fortes (análises detalhadas, sinais vitais,
-notas). Isto tem de aparecer no relatório e no deck.
+**O que esperar.** Na literatura sobre este dataset, os melhores modelos ficam em ROC-AUC ≈ 0,65–0,70. O
+ganho do gradient boosting sobre a regressão logística é pequeno: o dataset não tem sinais clínicos fortes
+(análises detalhadas, sinais vitais, notas).
 
-## Armadilhas desta fase
+## Armadilhas
 
-- **Fuga por doente.** É o erro que mais infla as métricas neste dataset:
-  num split aleatório por encontro, 41% dos encontros de validação seriam de
-  doentes que o modelo já viu. Os folds de D13 evitam isto, desde que se usem.
-- **Otimizar o threshold agora.** O ponto de corte decide-se na T3.3, pela
-  capacidade da equipa de follow-up. Nesta fase compara-se a ordenação
-  (PR-AUC, recall@k), não um threshold.
-- **Tuning em excesso.** Com cerca de 9 000 positivos no treino, um grid
-  grande ajusta-se ao ruído dos folds. Chegam poucas combinações por modelo.
-- **Esquecer o registo.** Cada corrida que entra na comparação vai para
-  `reports/experiments.csv` (via `src/models/train.py`, `run_cv`), incluindo as que correram mal.
+- **Fuga por doente.** É o erro que mais infla as métricas neste dataset: num split aleatório por encontro,
+  41% dos encontros de validação seriam de doentes que o modelo já viu. Os folds de D13 evitam isto.
+- **Escolher o corte cedo demais.** O corte decide-se pela capacidade da equipa de follow-up (D26), não
+  durante a comparação de modelos, que compara a ordenação (PR-AUC, recall@k).
+- **Tuning em excesso.** Com cerca de 9 000 positivos no treino, um grid grande ajusta-se ao ruído dos
+  folds. Chegam poucas combinações por modelo.
+- **Esquecer o registo.** Cada corrida que entra na comparação vai para `reports/experiments.csv`, incluindo
+  as que correram mal.
 
-## Decisões desta fase (estado a 6/11)
+## Decisões da modelação
 
-1. Qual o gradient boosting: **HistGradientBoosting** (D17).
-2. `payer_code`, `max_glu_serum` e o indicador de registo incompleto:
-   ablação feita; `payer_code` fica, o indicador não entra,
-   `max_glu_serum` fica (D18, decidido a 14/11).
-3. Pré-processamento do gradient boosting: o comum de D16.
-4. Hugging Face Hub: só para publicar (D23, decidido a 8/11): o Kumo Tabular fica como
-   desafiante e empata com o v1 ([anexo_kumo_tabular.md](anexo_kumo_tabular.md)). O Space
-   `murtaza65/diabetes-readmission-prediction-live` foi analisado e não serve
-   (sem licença, treinado com os nossos doentes de teste, fuga por doente).
-5. Candidato a modelo v1: HistGradientBoosting (D17, decidido a 10/11).
+1. Gradient boosting: **HistGradientBoosting**, que é o modelo v1 (D17, 10/11).
+2. Ablação: `payer_code` fica, o indicador de registo incompleto não entra e `max_glu_serum` fica (D18).
+3. Pré-processamento: o comum de D16, para todos os modelos.
+4. Hugging Face Hub: só para publicar (D23, 8/11). O Kumo Tabular fica como desafiante e empata com o v1
+   ([anexo_kumo_tabular.md](anexo_kumo_tabular.md)). O Space `murtaza65/diabetes-readmission-prediction-live`
+   foi analisado e não serve (sem licença, treinado com os nossos doentes de teste, fuga por doente).
+5. Tuning: medido nos folds por doente (early stopping e três níveis de regularização); nenhuma variante
+   bate o v1, que se mantém (D27, `scripts/tuning_v1.py`).
+6. Features novas: comorbilidades de Charlson e HbA1c × medicação alterada; nenhuma melhora o v1 (D28,
+   `scripts/feature_screen_v1.py`).

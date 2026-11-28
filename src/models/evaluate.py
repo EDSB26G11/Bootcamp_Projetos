@@ -35,11 +35,13 @@ def _top_k(scores, k: float) -> np.ndarray:
 
 
 def recall_at_k(y, scores, k: float) -> float:
+    """Fração das readmissões (y = 1) que ficam nos k% de altas com score mais alto."""
     y = np.asarray(y)
     return y[_top_k(scores, k)].sum() / y.sum()
 
 
 def precision_at_k(y, scores, k: float) -> float:
+    """Fração de readmissões entre os k% de altas com score mais alto."""
     return np.asarray(y)[_top_k(scores, k)].mean()
 
 

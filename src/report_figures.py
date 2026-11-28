@@ -30,6 +30,7 @@ SOURCE = "Fonte: Diabetes 130-US hospitals (UCI), 1999–2008. "
 
 
 def save(fig, path):
+    """Grava a figura, fecha-a e escreve o caminho no ecrã."""
     fig.savefig(path)
     plt.close(fig)
     print("  ", path)
@@ -39,6 +40,7 @@ def save(fig, path):
 
 
 def load_raw() -> pd.DataFrame:
+    """Lê o ficheiro original como o notebook 01: IDs descodificados e target (<30), sem exclusões."""
     from src.data.load import load_diabetic_data, validate_diabetic_data
     from src.data.mappings import decode_ids, parse_ids_mapping
 
@@ -68,6 +70,7 @@ def rate_by(data, col, order=None):
 
 
 def eda_figures(df: pd.DataFrame):
+    """Gera as cinco figuras da EDA em docs/figures/ (01 a 05)."""
     n, base = len(df), df["target"].mean()
     eda_who = f"Diabetes 130-US hospitals, todos os encontros do ficheiro original (n = {num(n)})"
     eda_when = "1999–2008 · AC · análise exploratória, antes das exclusões (D1, D2, D7)"
@@ -292,17 +295,19 @@ def page_kumo_curve():
 
 
 def projeto_final_pages():
+    """Gera as páginas do Projeto_Final em reports/figures/."""
     from src.pipeline import read_processed
 
     df = read_processed()
     save(page_target(df), PAGES / "page_target.png")
     save(page_inpatient(df), PAGES / "page_inpatient.png")
-    for k in (0.10, 0.20):
-        save(page_model_vs_baseline(k), PAGES / f"page_model_vs_baseline_k{int(k * 100)}.png")
+    for k in (0.30, 0.20):  # D26: 30%; 20% como sensibilidade
+        save(page_model_vs_baseline(k), PAGES / f"page_model_vs_baseline_k{round(k * 100)}.png")
     save(page_kumo_curve(), PAGES / "kumo_learning_curve.png")
 
 
 def main():
+    """Gera todas as figuras de relatório: as da EDA e as do Projeto_Final."""
     set_style()
     DOCS_FIG.mkdir(parents=True, exist_ok=True)
     print("EDA:")

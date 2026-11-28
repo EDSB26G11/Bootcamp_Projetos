@@ -27,6 +27,8 @@ MODEL_FILES = ["model.skops", "config.json", "README.md"]
 
 
 def main(space: str) -> None:
+    """Publica a app no Space indicado: app.py, src/, o modelo de models/v1/, os requirements e o README do
+    Space. Para com uma mensagem clara se faltar o modelo ou a autenticação no Hugging Face."""
     missing = [f for f in MODEL_FILES if not (ROOT / "models" / "v1" / f).exists()]
     if missing:
         raise SystemExit(f"Falta models/v1/{missing}: correr primeiro o notebooks/06_deployment.ipynb.")

@@ -41,7 +41,7 @@ OOF = Path("reports/oof_v1.csv")
 
 # Paleta do modelo NOVA IMS do deck.
 # Paleta e letra: as de src/viz.py (um só estilo para relatório, EDA e deck).
-CAPACITY = 0.20  # D24
+CAPACITY = 0.30  # D26 (10% e 20%: sensibilidade)
 AGE_BANDS = ["Menos de 40 anos", "40–59 anos", "60–79 anos", "80 ou mais anos"]
 
 # Destino da alta: nomes curtos em português (como no deck) e se fica na lista (D21).
@@ -339,7 +339,7 @@ def _matrix(ax, m: dict, fs: float, show_labels: bool = True):
 
 
 def fig_confusao(m: dict):
-    """Matriz do diapositivo principal (validação out-of-fold, capacidade de 20%)."""
+    """Matriz do diapositivo principal (validação out-of-fold, capacidade de 30%)."""
     fig, ax = plt.subplots(figsize=(6.6, 4.3))
     _matrix(ax, m, FONT)
     return fig
@@ -542,11 +542,11 @@ def _gain_until(g: pd.DataFrame, step: int = 10) -> int:
 
 
 def fig_ganhos(
-    g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | None = None, pos: int | None = None, figsize=None
+    g: pd.DataFrame, k_cap: int = 30, page: bool = False, n: int | None = None, pos: int | None = None, figsize=None
 ):
     """Curva de ganhos acumulados (IBCS): modelo a verde, regra a preto, acaso a
     tracejado; faixa cinzenta onde cada follow-up extra rende mais do que ao acaso;
-    linha vertical na capacidade (D24) com os três valores escritos.
+    linha vertical na capacidade (D26) com os três valores escritos.
     page=True acrescenta a mensagem, o título em três linhas e o rodapé (relatório)."""
     cut = _gain_until(g)
     fig, ax = plt.subplots(figsize=figsize or ((10, 6.4) if page else (9.2, 4.6)))
@@ -581,7 +581,7 @@ def fig_ganhos(
             color=color,
             fontweight="bold" if col == "modelo" else None,
         )
-    # Capacidade escolhida (D24): os três valores escritos junto à linha.
+    # Capacidade escolhida (D26): os três valores escritos junto à linha.
     ax.axvline(k_cap, color=MID, lw=1, ls=":", zorder=1)
     for col, color, dx, ha, fw in [
         ("modelo", GREEN_TEXT, -6, "right", "bold"),
@@ -602,7 +602,7 @@ def fig_ganhos(
             fontweight=fw,
         )
     ax.annotate(
-        f"Capacidade: {k_cap}% das altas (D24)",
+        f"Capacidade: {k_cap}% das altas (D26)",
         (k_cap, 2),
         xytext=(4, 0),
         textcoords="offset points",
@@ -625,8 +625,12 @@ def fig_ganhos(
         report_page(
             fig,
             f"Com follow-up a {k_cap}% das altas, o modelo encontra {num(m, 0)}% das readmissões (regra "
-            f"simples: {num(r, 0)}%; acaso: {k_cap}%); depois dos {cut}%, cada follow-up extra rende menos do que "
-            "ao acaso",
+            f"simples: {num(r, 0)}%; acaso: {k_cap}%); "
+            + (
+                f"{cut}% é o limite: depois, cada follow-up extra rende menos do que ao acaso"
+                if cut == k_cap
+                else f"depois dos {cut}%, cada follow-up extra rende menos do que ao acaso"
+            ),
             f"Rede hospitalar, altas de treino elegíveis para follow-up (n = {num(n)}; {num(pos)} readmissões; D21)",
             "Readmissões < 30 dias encontradas",
             "em % acumulada, por % de altas com follow-up",
@@ -642,7 +646,7 @@ def fig_ganhos(
     return fig
 
 
-def gains_page(y, scores, number_inpatient, k_cap: int = 20):
+def gains_page(y, scores, number_inpatient, k_cap: int = 30):
     """Página de relatório da curva de ganhos (usada no notebook 04 e no Projeto_Final)."""
     set_deck_style()
     g = gains_table(y, scores, number_inpatient)
@@ -691,19 +695,19 @@ def demo_cases() -> dict:
             "top_pct": r["top_pct"],
             "elegivel": r["eligible"],
             "follow_up_app": r["follow_up"],
-            "follow_up_20": bool(r["eligible"] and r["risk"] >= capacity_threshold(bundle, 20)),
+            "follow_up_30": bool(r["eligible"] and r["risk"] >= capacity_threshold(bundle, 30)),
         }
     return out
 
 
 def train_confusions(tr: pd.DataFrame) -> dict:
     """Matrizes de treino (modelo final a prever as próprias altas) e de validação
-    (OOF), a 10% e 20%, com os cortes gravados no config.json."""
+    (OOF), a 20% e 30%, com os cortes gravados no config.json."""
     bundle = load_model(MODEL_DIR)
     e = tr[tr["eligible"]].reset_index(drop=True)
     s_train = bundle["model"].predict_proba(model_frame(e)[bundle["features"]])[:, 1]
     out = {}
-    for k in (10, 20):
+    for k in (20, 30):
         t = bundle[f"threshold_k{k}"]
         out[f"validacao_k{k}"] = confusion(e["target"], e["oof"], t)
         out[f"treino_k{k}"] = confusion(e["target"], s_train, t)
@@ -711,12 +715,15 @@ def train_confusions(tr: pd.DataFrame) -> dict:
 
 
 def main():
+    """Gera os gráficos do deck (reports/figures/deck/), a curva de ganhos e os números usados no texto
+    (reports/deck_numbers.json)."""
     set_deck_style()
     OUT.mkdir(parents=True, exist_ok=True)
     tr = load_train()
     numbers = {"populacao": {"n_train": len(tr), "taxa_train": float(tr["target"].mean())}}
 
     def save(fig, name):
+        """Grava a figura em reports/figures/deck/ com fundo branco e fecha-a."""
         fig.savefig(OUT / f"{name}.png", transparent=False, facecolor="white")
         plt.close(fig)
 
@@ -726,14 +733,14 @@ def main():
     save(fig, "02_fuga_contagem_encontros")
     for k in (0.10, 0.20, 0.30):
         numbers[f"capacidade_{int(k * 100)}"] = capacity_numbers(tr, k)
-    save(fig_modelo_vs_regra(numbers["capacidade_20"]), "03_modelo_vs_regra_k20")
+    save(fig_modelo_vs_regra(numbers["capacidade_30"]), "03_modelo_vs_regra")
     numbers["confusao"] = train_confusions(tr)
-    save(fig_confusao(numbers["confusao"]["validacao_k20"]), "04_matriz_confusao_k20")
+    save(fig_confusao(numbers["confusao"]["validacao_k30"]), "04_matriz_confusao")
     titles = {
+        "validacao_k30": "30% · validação (out-of-fold)",
+        "treino_k30": "30% · treino",
         "validacao_k20": "20% · validação (out-of-fold)",
         "treino_k20": "20% · treino",
-        "validacao_k10": "10% · validação (out-of-fold)",
-        "treino_k10": "10% · treino",
     }
     for key, ttl in titles.items():
         save(fig_confusao_anexo(numbers["confusao"][key], ttl), f"A_matriz_{key}")
@@ -746,7 +753,7 @@ def main():
         "recall_total": total,
         **{g: {c: float(tab.loc[g, c]) for c in ("n", "positive_rate", "flagged_rate", "recall")} for g in tab.index},
     }
-    save(fig_equidade(tab, total), "06_equidade_recall_k20")
+    save(fig_equidade(tab, total), "06_equidade_recall")
     fig, numbers["modelos_pr_auc"] = fig_modelos(pd.read_csv("reports/experiments.csv"))
     save(fig, "A_modelos_pr_auc")
     save(fig_importancia(pd.read_csv("reports/permutation_importance_v1.csv", index_col=0)), "A_importancia")

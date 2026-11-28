@@ -130,18 +130,18 @@ dates; human review of every contact; calibration valid only for this population
 ### 4.4 Open items (review of 28 Nov)
 | Item | Status |
 |---|---|
-| Capacity: 20% (D24, aceite) vs 30% in the app (D26, `Proposta`) | **team decision**, before the demo. At 30% the gain over the rule stays +128 (vs +129 at 20%) and precision drops to 16.6%; the gains curve shows extra follow-ups beat random only up to 30% |
-| Targets of D20 | `Proposta` — **must be closed before opening the test**; T0.6 stays open until then |
-| Final test evaluation T3.6 (once) | to do — critical. Then fill: model card "Avaliação no teste", deck A13 `[__]` and slides 5, 7–9, Projeto_Final conclusions/Abstract, problem_framing |
-| Deck (v6 in Teams, 26 slides) | placeholders: date on cover, pilot length `[N]`, decision date `[data]`, D7 `[rever]` (A12), test numbers; final PDF into the ZIP |
+| Capacity | **closed: 30% (D26, aceite 28/11)**; 10% and 20% as sensitivity. `threshold_k30` = 0.1026 in `config.json`; app, report, deck v7 and model card at 30% |
+| Targets of D20 | **closed: aceite 28/11** (30%) |
+| Final test evaluation T3.6 (once) | **done 28/11** (`scripts/evaluate_test_v1.py`, `reports/test_results_v1.json`): 5 of 6 D20 targets met; calibration on eligible fails by 0.25 pp (top decile). Recall@30% 52.4% vs rule 51.1% (+1.3 pp, CI −0.8 to +3.3); PR-AUC 0.227 vs 0.169. Numbers in model card, problem_framing, Projeto_Final, README, deck v8 |
+| Deck (v8 in Teams, 26 slides, 30%, test numbers) | placeholders: date on cover, pilot length `[N]`, decision date `[data]`, D7 `[rever]` (A12); final PDF into the ZIP |
 | Code freeze `v1.0` tag + Moodle ZIP (`EDSB26_G11.csv` complete) | no tag yet; confirm the exact deadline with the lecturers (W12 was 23–27 Nov) |
-| Commit the working tree | figures/report restyle (src/viz.py, src/report_figures.py), roadmap clean-up |
-| `docs/monitoring.md` (T4.5) | to do (KPIs: % of top-k with follow-up, discharge→follow-up time, flag rate, drift, flags by group) |
+| Commit the working tree | figures restyle (src/viz.py, src/report_figures.py), roadmap clean-up, 30% (D26), monitoring, ai_usage, jupytext |
+| `docs/monitoring.md` (T4.5) | **done** (28/11): proposal with reference values from the OOF |
 | Test the Space with test-set cases and invalid inputs; demo script + plan B video | to do |
-| W3 repo rules | AI usage log is git-ignored (`docs/status_apoio_ia.md`): commit a clean `docs/ai_usage.md`; `requirements-installed.txt` missing; notebooks are `.ipynb` (W3 asks jupytext `.py`); 33 public functions/classes without docstring (mostly `src/data/quality.py`, `src/models/kumo.py`) |
-| Fairness write-up | numbers at 20% in deck slide 10 (race missing 15% recall, 60+ ≈35% vs 40%); write-up in the report |
+| W3 repo rules | done: `docs/ai_usage.md`; docstrings on every public function/class (28/11). Notebooks stay `.ipynb` only (team decision 28/11: W1 allows `.py` or `.ipynb`; no jupytext duplicates). `requirements-installed.txt` done (pip freeze, 28/11; the five requirements files are explained in the README) |
+| Fairness write-up | **done at 30%** in Projeto_Final §3.7, model card and deck slide 10 (race missing recall 24% vs 52%; 90–99 years 46%) |
 | LLM component T5 (W11) | **out of scope (D25, 18 Nov)**: one sentence in report and deck (done in deck A10). Don't build it without a new decision |
-| Tuning HGB; own HF model repo | optional |
+| Tuning HGB | **closed (D27, 28/11)**: measured on the patient folds, no variant beats v1. New features (Charlson, HbA1c × medication change) **closed (D28)**: none helps. Model v1 is frozen; own HF model repo optional |
 | Rehearsals and Q&A bank | W13–14 |
 
 ---|---|
@@ -176,7 +176,7 @@ followed, defensible with a sentence · **Low** = deviation from teaching-repo c
 | C6 | **Resolved** — accuracy/F1 shown as reference next to the matrices; "why not accuracy/F1" written in section I |
 | C7 | **Resolved** — `docs/model_card.md` written, `models/v1/README.md` tracked and deployed (test section pending T3.6) |
 | C8 | **Open** — still 27 public functions/classes without docstring (same list) |
-| C9 | **Open** — no `requirements-installed.txt` |
+| C9 | **Closed (28/11)** — `requirements-installed.txt` committed, with a header and a README table |
 | C10 | Unchanged — also needed now by CI, which rebuilds processed data from `data/raw/` |
 | C11 | **Open, optional** — tuning not done |
 

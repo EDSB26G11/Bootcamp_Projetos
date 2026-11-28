@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
 
 from src.data.split import SEED
 
-CAPACITIES = (0.10, 0.20)
+CAPACITIES = (0.10, 0.20, 0.30)  # 30%: capacidade escolhida (D26); 10% e 20%: sensibilidade
 
 
 def threshold_for_capacity(scores, capacity: float) -> float:

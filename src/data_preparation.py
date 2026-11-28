@@ -28,6 +28,8 @@ SPLITS_DIR = "data/splits"
 
 
 def main() -> None:
+    """Lê os dados brutos, aplica as regras de qualidade, as exclusões e a limpeza (D1–D7) e grava o ficheiro
+    processado em data/processed/."""
     mappings = parse_ids_mapping(f"{RAW_DIR}/IDS_mapping.csv")
     df = load_diabetic_data(f"{RAW_DIR}/diabetic_data.csv")
     validate_diabetic_data(df)

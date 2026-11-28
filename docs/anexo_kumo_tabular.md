@@ -1,6 +1,6 @@
 # Anexo: Kumo Tabular como modelo desafiante (T2.3, D23)
 
-Nota da T2.3 (avaliar o Hugging Face Hub). Bancada: [notebooks/07_kumo_challenger.ipynb](../notebooks/07_kumo_challenger.ipynb).
+Nota da T2.3 (avaliar o Hugging Face Hub). Notebook: [notebooks/07_kumo_challenger.ipynb](../notebooks/07_kumo_challenger.ipynb).
 Decisão: D23 em [decisions.md](decisions.md).
 
 ## O que se avaliou no Hugging Face Hub

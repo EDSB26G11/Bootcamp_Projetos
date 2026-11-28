@@ -27,7 +27,7 @@ from sklearn.base import clone
 from src.data.population import NO_FOLLOW_UP_DISCHARGE, follow_up_eligible
 from src.data.split import SEED
 from src.models.evaluate import cv_predict
-from src.models.threshold import threshold_for_capacity
+from src.models.threshold import CAPACITIES, threshold_for_capacity
 from src.pipeline import ModelData
 
 EXPERIMENTS = "reports/experiments.csv"
@@ -115,7 +115,7 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
     - model.skops: o pipeline;
     - config.json: features, valores por defeito e opções de cada campo (para
       a app), destinos de alta fora da lista de follow-up (D21), thresholds a
-      10% e 20% de capacidade e quantis das previsões OOF (para o percentil de
+      10%, 20% e 30% de capacidade (D26) e quantis das previsões OOF (para o percentil de
       risco), ambos calculados só nas altas elegíveis; versões e seed;
     - README.md: o model card, copiado de docs/model_card.md.
     """
@@ -133,8 +133,7 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
         },
         "choices": {c: sorted(X[c].unique().tolist()) for c in X.columns if not pd.api.types.is_numeric_dtype(X[c])},
         "no_follow_up_discharge": sorted(NO_FOLLOW_UP_DISCHARGE.values()),
-        "threshold_k10": threshold_for_capacity(oof_e, 0.10),
-        "threshold_k20": threshold_for_capacity(oof_e, 0.20),
+        **{f"threshold_k{round(100 * k)}": threshold_for_capacity(oof_e, k) for k in CAPACITIES},
         "oof_quantiles": np.quantile(oof_e, np.linspace(0, 1, 1001)).tolist(),
         "n_train": int(len(oof)),
         "n_eligible": int(eligible.sum()),

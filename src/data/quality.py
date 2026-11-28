@@ -63,6 +63,10 @@ ICD9_PATTERN = r"^(\d{3}(\.\d{1,2})?|V\d{2}(\.\d{1,2})?|E\d{3}(\.\d)?)$"
 
 @dataclass(frozen=True)
 class Check:
+    """Uma regra de qualidade: código (A1, B1, C1…), camada (A: coerência dentro do encontro; B: formato e
+    domínio; C: coerência entre encontros do mesmo doente), descrição, severidade (erro, suspeito,
+    limitação) e a função que devolve True nas linhas que violam a regra."""
+
     id: str
     camada: str
     descricao: str
@@ -102,33 +106,40 @@ def _by_patient(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def newborn_not_infant(df):
+    """A1: admissão do tipo recém-nascido (Newborn) com 10 ou mais anos."""
     return (df["admission_type_id"] == NEWBORN_ADMISSION_TYPE) & (age_lower(df) >= 10)
 
 
 def birth_source_not_infant(df):
+    """A2: origem de admissão ligada ao parto ou nascimento com 10 ou mais anos."""
     return df["admission_source_id"].isin(BIRTH_ADMISSION_SOURCES) & (age_lower(df) >= 10)
 
 
 def neonate_discharge_not_infant(df):
+    """A3: alta de neonato (destino 10) com 10 ou mais anos."""
     return (df["discharge_disposition_id"] == NEONATE_DISCHARGE) & (age_lower(df) >= 10)
 
 
 def pediatrics_adult(df):
+    """A4: especialidade pediátrica com 20 ou mais anos (suspeito, não é erro)."""
     pediatric = df["medical_specialty"].fillna("").str.contains("Pediatric")
     return pediatric & (age_lower(df) >= 20)
 
 
 def obstetric_male(df):
+    """A5: obstetrícia/ginecologia ou diagnóstico de gravidez (ICD-9 630–679) em homens."""
     obstetric = df["medical_specialty"].fillna("").str.contains(OBSTETRIC_SPECIALTY)
     pregnancy = any_diag_in(df, [(630, 680)])
     return (obstetric | pregnancy) & (df["gender"] == "Male")
 
 
 def pregnancy_60_plus(df):
+    """A6: diagnóstico de gravidez (ICD-9 630–679) com 60 ou mais anos."""
     return any_diag_in(df, [(630, 680)]) & (age_lower(df) >= 60)
 
 
 def prostate_female(df):
+    """A7: diagnóstico da próstata (ICD-9 185, 600–602) em mulheres."""
     prostate = any_diag_in(df, [(185, 186), (600, 603)])
     return prostate & (df["gender"] == "Female")
 
@@ -139,11 +150,13 @@ def diag_order_gap(df):
 
 
 def diag_repeated(df):
+    """A9: o mesmo código repetido em diag_1–3 (suspeito; ver P26)."""
     d1, d2, d3 = (df[c] for c in DIAG_COLS)
     return ((d1 == d2) | (d1 == d3) | (d2 == d3)).fillna(False).astype(bool)
 
 
 def number_diagnoses_too_low(df):
+    """A10: number_diagnoses menor do que o número de diag_1–3 preenchidos."""
     return df["number_diagnoses"] < df[DIAG_COLS].notna().sum(axis=1)
 
 
@@ -151,6 +164,7 @@ def number_diagnoses_too_low(df):
 
 
 def icd9_malformed(df):
+    """B1: código ICD-9 fora do formato esperado (por exemplo, zeros à esquerda perdidos, D4)."""
     bad = pd.Series(False, index=df.index)
     for c in DIAG_COLS:
         bad |= df[c].notna() & ~df[c].fillna("").str.match(ICD9_PATTERN)
@@ -187,10 +201,12 @@ def no_diabetes_code(df):
 
 
 def patient_gender_inconsistent(df):
+    """C1: doente com mais de um valor de gender nos seus encontros."""
     return df.groupby("patient_nbr")["gender"].transform("nunique") > 1
 
 
 def patient_race_inconsistent(df):
+    """C2: doente com mais de um valor de race nos seus encontros (harmonizado na D3)."""
     return df.groupby("patient_nbr")["race"].transform("nunique") > 1
 
 

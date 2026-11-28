@@ -4,20 +4,20 @@
   "taxa_train": 0.11339188665808773
  },
  "destinos": {
-  "k": 0.2,
-  "n_top": 16009,
-  "pct_fora_da_lista": 0.5739896308326566,
-  "pct_casa": 0.36766818664501216,
-  "pct_outros": 0.08870010619026797,
+  "k": 0.3,
+  "n_top": 24013,
+  "pct_fora_da_lista": 0.5672344146920418,
+  "pct_casa": 0.3715487444301004,
+  "pct_outros": 0.08861866488985133,
   "partes": {
-   "Casa (sem apoio)": 0.36766818664501216,
-   "Lar com enfermagem (SNF)": 0.2253732275594978,
-   "Apoio domiciliário": 0.15510025610594042,
-   "Reabilitação": 0.08969954400649635,
-   "Outro hospital": 0.03879068024236367,
-   "Outra instituição": 0.03466799925042164,
-   "Outros, ficam na lista": 0.05834218252233119,
-   "Outros, saem da lista": 0.030357923667936784
+   "Casa (sem apoio)": 0.3715487444301004,
+   "Lar com enfermagem (SNF)": 0.24016157914463,
+   "Apoio domiciliário": 0.17140715445800192,
+   "Reabilitação": 0.06400699621038604,
+   "Outro hospital": 0.03473118727356016,
+   "Outra instituição": 0.029525673593470202,
+   "Outros, ficam na lista": 0.06121684087785783,
+   "Outros, saem da lista": 0.027401824011993505
   },
   "n_train": 80041,
   "n_eligible": 52436,
@@ -83,36 +83,6 @@
   "por_1000_acaso": 28.669234876802197
  },
  "confusao": {
-  "validacao_k10": {
-   "tp": 1255,
-   "fp": 3989,
-   "fn": 3756,
-   "tn": 43436,
-   "recall": 0.2504490121732189,
-   "precisao": 0.2393211289092296,
-   "especificidade": 0.9158882445967317,
-   "accuracy": 0.8522961324281029,
-   "error_rate": 0.14770386757189716,
-   "f1": 0.24475865431496832,
-   "balanced_accuracy": 0.5831686283849753,
-   "sinalizadas": 0.10000762834693722,
-   "accuracy_sempre_nao": 0.9044358837439926
-  },
-  "treino_k10": {
-   "tp": 1742,
-   "fp": 3621,
-   "fn": 3269,
-   "tn": 43804,
-   "recall": 0.34763520255438035,
-   "precisao": 0.32481819876934553,
-   "especificidade": 0.9236478650500791,
-   "accuracy": 0.8686017240064078,
-   "error_rate": 0.1313982759935922,
-   "f1": 0.3358395989974937,
-   "balanced_accuracy": 0.6356415338022298,
-   "sinalizadas": 0.10227706156075979,
-   "accuracy_sempre_nao": 0.9044358837439926
-  },
   "validacao_k20": {
    "tp": 2011,
    "fp": 8477,
@@ -142,6 +112,36 @@
    "balanced_accuracy": 0.6800960585709857,
    "sinalizadas": 0.20007246929590358,
    "accuracy_sempre_nao": 0.9044358837439926
+  },
+  "validacao_k30": {
+   "tp": 2615,
+   "fp": 13116,
+   "fn": 2396,
+   "tn": 34309,
+   "recall": 0.5218519257633207,
+   "precisao": 0.16623228021104824,
+   "especificidade": 0.7234370057986295,
+   "accuracy": 0.7041727057746586,
+   "error_rate": 0.2958272942253414,
+   "f1": 0.2521454054575258,
+   "balanced_accuracy": 0.6226444657809751,
+   "sinalizadas": 0.3000038141734686,
+   "accuracy_sempre_nao": 0.9044358837439926
+  },
+  "treino_k30": {
+   "tp": 3279,
+   "fp": 12396,
+   "fn": 1732,
+   "tn": 35029,
+   "recall": 0.6543604071043704,
+   "precisao": 0.2091866028708134,
+   "especificidade": 0.7386188719030048,
+   "accuracy": 0.7305667861774353,
+   "error_rate": 0.26943321382256463,
+   "f1": 0.3170260079280673,
+   "balanced_accuracy": 0.6964896395036876,
+   "sinalizadas": 0.298935845602258,
+   "accuracy_sempre_nao": 0.9044358837439926
   }
  },
  "calibracao": {
@@ -151,78 +151,78 @@
   "decil1_obs": 3.8329519450800915
  },
  "equidade": {
-  "recall_total": 0.40131710237477547,
+  "recall_total": 0.5218519257633207,
   "Homens": {
    "n": 25647.0,
    "positive_rate": 0.09755526962217803,
-   "flagged_rate": 0.20286973135259484,
-   "recall": 0.39488409272581937
+   "flagged_rate": 0.30467501072250164,
+   "recall": 0.5195843325339728
   },
   "Mulheres": {
    "n": 26789.0,
    "positive_rate": 0.09365784463772443,
-   "flagged_rate": 0.1972451379297473,
-   "recall": 0.40773216420884817
+   "flagged_rate": 0.2955317481055657,
+   "recall": 0.5241131925069749
   },
   "AfricanAmerican": {
    "n": 10984.0,
    "positive_rate": 0.10260378732702112,
-   "flagged_rate": 0.23188273852876912,
-   "recall": 0.4383318544809228
+   "flagged_rate": 0.3320284049526584,
+   "recall": 0.5510204081632653
   },
   "Asian": {
    "n": 377.0,
    "positive_rate": 0.08222811671087533,
-   "flagged_rate": 0.1246684350132626,
-   "recall": 0.3548387096774194
+   "flagged_rate": 0.23607427055702918,
+   "recall": 0.5161290322580645
   },
   "Caucasian": {
    "n": 37799.0,
    "positive_rate": 0.09558453927352575,
-   "flagged_rate": 0.1975449085954655,
-   "recall": 0.39717686133407143
+   "flagged_rate": 0.2998492023598508,
+   "recall": 0.5203432050927207
   },
   "Hispanic": {
    "n": 1232.0,
    "positive_rate": 0.07142857142857142,
-   "flagged_rate": 0.1680194805194805,
-   "recall": 0.3409090909090909
+   "flagged_rate": 0.24675324675324675,
+   "recall": 0.5113636363636364
   },
   "Other": {
    "n": 839.0,
    "positive_rate": 0.08820023837902265,
-   "flagged_rate": 0.16209773539928488,
-   "recall": 0.3918918918918919
+   "flagged_rate": 0.25387365911799764,
+   "recall": 0.4594594594594595
   },
   "Raça em falta": {
    "n": 1205.0,
    "positive_rate": 0.06473029045643154,
-   "flagged_rate": 0.06887966804979254,
-   "recall": 0.15384615384615385
+   "flagged_rate": 0.11950207468879669,
+   "recall": 0.24358974358974358
   },
   "40–59 anos": {
    "n": 16946.0,
    "positive_rate": 0.0878673433258586,
-   "flagged_rate": 0.1882450135725245,
-   "recall": 0.4304902619207522
+   "flagged_rate": 0.2622447775286203,
+   "recall": 0.5157824042981867
   },
   "60–79 anos": {
    "n": 24592.0,
    "positive_rate": 0.09621014964216006,
-   "flagged_rate": 0.1959580351333767,
-   "recall": 0.34699915469146236
+   "flagged_rate": 0.313069290826285,
+   "recall": 0.49577345731191885
   },
   "80 ou mais anos": {
    "n": 6259.0,
    "positive_rate": 0.10177344623741812,
-   "flagged_rate": 0.20786068061990734,
-   "recall": 0.3532182103610675
+   "flagged_rate": 0.34494328167438887,
+   "recall": 0.5149136577708007
   },
   "Menos de 40 anos": {
    "n": 4639.0,
    "positive_rate": 0.1118775598189265,
-   "flagged_rate": 0.2537184738090106,
-   "recall": 0.6242774566473989
+   "flagged_rate": 0.30804052597542575,
+   "recall": 0.6666666666666666
   }
  },
  "modelos_pr_auc": {
@@ -257,21 +257,21 @@
    "top_pct": 5.794205794205794,
    "elegivel": true,
    "follow_up_app": true,
-   "follow_up_20": true
+   "follow_up_30": true
   },
   "A_reabilitacao": {
    "risco": 0.21910973569181727,
    "top_pct": 4.795204795204796,
    "elegivel": false,
    "follow_up_app": false,
-   "follow_up_20": false
+   "follow_up_30": false
   },
   "B_casa": {
    "risco": 0.08182800995383648,
    "top_pct": 46.15384615384615,
    "elegivel": true,
    "follow_up_app": false,
-   "follow_up_20": false
+   "follow_up_30": false
   }
  },
  "internamentos": {

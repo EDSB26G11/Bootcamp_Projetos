@@ -36,6 +36,9 @@ MIN_CATEGORY_COUNT = 100
 
 @dataclass
 class ModelData:
+    """Dados de modelação separados por doente (D13): features e target do treino, o doente e o fold de cada
+    linha de treino, e o teste, que só se usa uma vez, na avaliação final (T3.6)."""
+
     X_train: pd.DataFrame
     y_train: pd.Series
     groups_train: pd.Series  # patient_nbr, para CV agrupada

@@ -34,9 +34,6 @@ BLUE = "#3777FF"  # variação neutra
 BAND = "#F2F2F2"  # faixa de fundo (zona a destacar)
 FONT = 13
 
-# Nomes antigos, para os notebooks que os importam (01_eda).
-AC, GREY, LIGHT, GOOD, BAD, NOTE = INK, MID, CONTEXT, GREEN, RED, MID
-
 # Nomes dos modelos no relatório (UN 1.1: o mesmo nome em todas as páginas).
 MODEL_LABELS = {
     "hist_gradient_boosting": "Modelo v1 (HistGradientBoosting)",

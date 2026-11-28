@@ -68,6 +68,7 @@ def column_types(columns) -> dict:
 
 
 def default_device() -> str:
+    """Devolve 'cuda' se houver GPU disponível e 'cpu' se não houver."""
     import torch
 
     return "cuda" if torch.cuda.is_available() else "cpu"
@@ -90,6 +91,7 @@ def kumo_backend(
     device = device or default_device()
 
     def predict(X_context, y_context, X_query):
+        """Prevê as linhas de X_query lendo X_context e y_context como contexto (o modelo não é treinado)."""
         key = (size, device)
         if key not in _MODELS:
             _MODELS[key] = sdm.models.KumoTabular(task="classification", size=size, device=device)
@@ -143,6 +145,8 @@ class KumoTabularClassifier(ClassifierMixin, BaseEstimator):
         self.backend = backend
 
     def fit(self, X, y):
+        """Não treina: guarda como contexto uma amostra estratificada de até max_context altas rotuladas, só
+        com as features do modelo (sem identificadores, D11)."""
         X = X[FEATURES]  # sem encounter_id nem patient_nbr (D11), mesmo se vierem em X
         keep = stratified_context(y, self.max_context, self.random_state)
         self.context_X_ = X.iloc[keep]
@@ -157,6 +161,8 @@ class KumoTabularClassifier(ClassifierMixin, BaseEstimator):
         return kumo_backend(self.size, self.num_estimators, self.device, self.random_state, self.query_batch_size)
 
     def predict_proba(self, X):
+        """Probabilidade de readmissão de cada linha de X, calculada pelo Kumo a partir do contexto guardado.
+        Mede também o tempo e, em GPU, a memória usada."""
         backend = self._backend()
         cuda = getattr(backend, "device", None) == "cuda"
         if cuda:
@@ -175,6 +181,8 @@ class KumoTabularClassifier(ClassifierMixin, BaseEstimator):
         return np.column_stack([1 - p, p])
 
     def predict(self, X):
+        """Classe prevista com corte 0,5. Só existe pela API do scikit-learn; o projeto usa o corte da
+        capacidade (D26)."""
         return (self.predict_proba(X)[:, 1] >= 0.5).astype(int)
 
 

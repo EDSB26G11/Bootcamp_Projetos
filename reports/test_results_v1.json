@@ -1,0 +1,192 @@
+{
+ "ensaio_com_oof_do_treino": false,
+ "avaliado_em": "2026-11-28T14:43:26",
+ "n_teste": 20011,
+ "n_elegiveis": 13101,
+ "taxa_teste": 0.11343760931487681,
+ "taxa_elegiveis": 0.09388596290359515,
+ "pontual": {
+  "pr_auc_modelo": 0.22705213930866697,
+  "pr_auc_regra": 0.16903105200439422,
+  "recall30_modelo": 0.5235772357723577,
+  "precisao30_modelo": 0.1638676844783715,
+  "recall30_regra": 0.5109349593495934,
+  "delta_recall30_pp": 1.2642276422764276,
+  "por1000_30_modelo": 49.15655293489046,
+  "por1000_30_regra": 47.96962063964582,
+  "recall20_modelo": 0.3910569105691057,
+  "precisao20_modelo": 0.18358778625954197,
+  "recall20_regra": 0.37434959349593494,
+  "delta_recall20_pp": 1.6707317073170747,
+  "por1000_20_modelo": 36.71475459888558,
+  "por1000_20_regra": 35.146172047935266,
+  "recall10_modelo": 0.23821138211382115,
+  "precisao10_modelo": 0.22366412213740458,
+  "recall10_regra": 0.23272357723577236,
+  "delta_recall10_pp": 0.5487804878048785,
+  "por1000_10_modelo": 22.36470498435234,
+  "por1000_10_regra": 21.849477139149684
+ },
+ "ic95_bootstrap_por_doente": {
+  "pr_auc_modelo": [
+   0.21008680350717526,
+   0.2444988735896198
+  ],
+  "pr_auc_regra": [
+   0.15557295185682132,
+   0.1841955132734203
+  ],
+  "recall30_modelo": [
+   0.4966720743205768,
+   0.5524445336236149
+  ],
+  "precisao30_modelo": [
+   0.15036451275401913,
+   0.1775905706201597
+  ],
+  "recall30_regra": [
+   0.48309306513632894,
+   0.5376483980993214
+  ],
+  "delta_recall30_pp": [
+   -0.8239918624733719,
+   3.3239623951301485
+  ],
+  "por1000_30_modelo": [
+   45.11047101810712,
+   53.271926777968524
+  ],
+  "por1000_30_regra": [
+   43.897697670477605,
+   52.1122130434319
+  ],
+  "recall20_modelo": [
+   0.35938810683811406,
+   0.4145579136763676
+  ],
+  "precisao20_modelo": [
+   0.1649999036237471,
+   0.20030350455552423
+  ],
+  "recall20_regra": [
+   0.3520991530963311,
+   0.4012320150449011
+  ],
+  "delta_recall20_pp": [
+   -0.5195793100187864,
+   2.882534446368457
+  ],
+  "por1000_20_modelo": [
+   33.00166566663683,
+   40.05533096872712
+  ],
+  "por1000_20_regra": [
+   32.06611126200376,
+   38.80071883320819
+  ],
+  "recall10_modelo": [
+   0.21235797173183743,
+   0.2632455456079482
+  ],
+  "precisao10_modelo": [
+   0.194289323410939,
+   0.25543235852833696
+  ],
+  "recall10_regra": [
+   0.21017586272279107,
+   0.25735786574655445
+  ],
+  "delta_recall10_pp": [
+   -1.0252799552071654,
+   2.05098664967408
+  ],
+  "por1000_10_modelo": [
+   19.430428374168727,
+   25.539553831172107
+  ],
+  "por1000_10_regra": [
+   19.255475474740802,
+   24.813757550683473
+  ]
+ },
+ "calibracao": {
+  "max_diff_pp_elegiveis": 2.252576528496414,
+  "max_diff_pp_todas": 0.8310036213242833,
+  "decis_elegiveis": [
+   {
+    "grupo": 1,
+    "risco_previsto": 3.44,
+    "observado": 3.05
+   },
+   {
+    "grupo": 2,
+    "risco_previsto": 4.79,
+    "observado": 5.19
+   },
+   {
+    "grupo": 3,
+    "risco_previsto": 5.67,
+    "observado": 6.03
+   },
+   {
+    "grupo": 4,
+    "risco_previsto": 6.53,
+    "observado": 5.95
+   },
+   {
+    "grupo": 5,
+    "risco_previsto": 7.41,
+    "observado": 6.72
+   },
+   {
+    "grupo": 6,
+    "risco_previsto": 8.4,
+    "observado": 8.09
+   },
+   {
+    "grupo": 7,
+    "risco_previsto": 9.67,
+    "observado": 9.69
+   },
+   {
+    "grupo": 8,
+    "risco_previsto": 11.4,
+    "observado": 12.44
+   },
+   {
+    "grupo": 9,
+    "risco_previsto": 14.54,
+    "observado": 14.35
+   },
+   {
+    "grupo": 10,
+    "risco_previsto": 24.62,
+    "observado": 22.37
+   }
+  ],
+  "brier_modelo_elegiveis": 0.08195203018655851,
+  "brier_taxa_base_elegiveis": 0.08507420507193411
+ },
+ "operacional": {
+  "fracao_com_follow_up": 0.3096710174795817,
+  "threshold_k30": 0.10259030600068364,
+  "matriz": {
+   "tp": 656,
+   "fp": 3401,
+   "fn": 574,
+   "tn": 8470
+  },
+  "recall": 0.5333333333333333,
+  "precisao": 0.1616958343603648,
+  "accuracy": 0.6965880467139913,
+  "f1": 0.24815585398146398
+ },
+ "metas_D20": {
+  "prioridade_pr_auc_acima_da_regra": true,
+  "prioridade_recall30_acima_da_regra": true,
+  "risco_decis_menos_de_2pp": false,
+  "risco_brier_abaixo_da_taxa_base": true,
+  "operacional_30pct_mais_menos_1pp": true,
+  "negocio_por1000_acima_da_regra": true
+ }
+}

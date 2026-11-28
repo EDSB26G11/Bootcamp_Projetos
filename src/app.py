@@ -31,8 +31,8 @@ from src.viz import pct
 # significado fixo: escuro = esta alta, médio/claro = quem cabe no follow-up,
 # cinzento = restantes altas. Contraste do texto sobre branco ≥ 4,5:1 (WCAG AA).
 TEAL_DARK = "#00524D"  # títulos, esta alta (≈ 9:1)
-TEAL = "#02ACA0"  # botão, follow-up com 10% (≈ 4,6:1)
-TEAL_MID = "#5FB8AF"  # follow-up com 20%
+TEAL = "#02ACA0"  # botão e cabeçalho (≈ 4,6:1)
+TEAL_MID = "#5FB8AF"  # zona de risco alto na escala (30% de maior risco, D26)
 TEAL_LIGHT = "#E6F4F2"  # fundos de cartão
 CONTEXT = "#DDE3E5"  # restantes altas
 TEXT = "#1F2A30"  # texto normal (≈ 15:1)
@@ -180,7 +180,7 @@ def _top(out: dict) -> float:
 
 
 def _risk_lines(out: dict, bold: bool = False) -> list[str]:
-    """O risco em linguagem simples, em frases curtas, uma por linha:
+    """O risco em frases curtas, para quem não é técnico, uma por linha:
 
     'Risco de readmissão em menos de 30 dias: 9%, abaixo da média de 9,6%.'
     'Em cada 100 doentes como este, cerca de 9 voltam a ser internados.'
@@ -466,6 +466,8 @@ def _dropdown(gr, bundle, col):
 
 
 def build_app(bundle: dict):
+    """Monta a app Gradio, sem a lançar: o formulário com os campos que mais pesam e o resultado
+    (recomendação, motivo, risco e posição). Recebe o bundle de load_model()."""
     import gradio as gr  # só é preciso para correr a app, não para os testes
 
     d = bundle["defaults"]

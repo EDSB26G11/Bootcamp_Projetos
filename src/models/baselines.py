@@ -24,10 +24,13 @@ class ColumnRanker(ClassifierMixin, BaseEstimator):
         self.threshold = threshold
 
     def fit(self, X, y):
+        """Não aprende nada: a ordem vem da coluna. Só regista as classes, como pede o scikit-learn."""
         self.classes_ = np.array([0, 1])
         return self
 
     def predict_proba(self, X):
+        """Score de cada linha: o valor da coluna a dividir pelo máximo (serve para ordenar); com threshold, 1
+        se o valor for igual ou maior e 0 se não for."""
         p = X[self.column].to_numpy(dtype=float)
         if self.threshold is not None:
             p = (p >= self.threshold).astype(float)
@@ -45,7 +48,8 @@ def simple_models() -> dict:
     """Variantes da regressão logística: pesos por classe e regularização L1."""
     return {
         "logreg_balanced": logistic_regression(class_weight="balanced"),
-        "logreg_l1": logistic_regression(C=0.1, penalty="l1", solver="liblinear"),
+        # L1 pedida com l1_ratio=1: o argumento penalty está obsoleto no scikit-learn 1.8+.
+        "logreg_l1": logistic_regression(C=0.1, l1_ratio=1, solver="liblinear"),
     }
 
 
