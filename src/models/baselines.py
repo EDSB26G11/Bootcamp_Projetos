@@ -55,9 +55,18 @@ def hist_gradient_boosting(**preprocessor_kwargs):
     Sem early stopping: a validação interna do sklearn é aleatória por
     encontro, não por doente (D13), e deixaria passar fuga por doente.
     """
-    return make_pipeline(build_preprocessor(**preprocessor_kwargs), HistGradientBoostingClassifier(
-        learning_rate=0.05, max_iter=300, max_leaf_nodes=31, min_samples_leaf=100,
-        l2_regularization=1.0, early_stopping=False, random_state=SEED))
+    return make_pipeline(
+        build_preprocessor(**preprocessor_kwargs),
+        HistGradientBoostingClassifier(
+            learning_rate=0.05,
+            max_iter=300,
+            max_leaf_nodes=31,
+            min_samples_leaf=100,
+            l2_regularization=1.0,
+            early_stopping=False,
+            random_state=SEED,
+        ),
+    )
 
 
 def candidate_models() -> dict:
@@ -65,8 +74,12 @@ def candidate_models() -> dict:
     configuração razoável; o tuning fica para a fase seguinte. O modelo v1 é
     o HistGradientBoosting (D17)."""
     return {
-        "random_forest": make_pipeline(build_preprocessor(), RandomForestClassifier(
-            n_estimators=300, min_samples_leaf=50, max_features="sqrt", n_jobs=-1, random_state=SEED)),
+        "random_forest": make_pipeline(
+            build_preprocessor(),
+            RandomForestClassifier(
+                n_estimators=300, min_samples_leaf=50, max_features="sqrt", n_jobs=-1, random_state=SEED
+            ),
+        ),
         "hist_gradient_boosting": hist_gradient_boosting(),
     }
 

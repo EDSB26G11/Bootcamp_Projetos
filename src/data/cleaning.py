@@ -20,9 +20,7 @@ def harmonize_race(df: pd.DataFrame) -> pd.DataFrame:
     if multi.empty:
         return df
     sub = known[known["patient_nbr"].isin(multi)]
-    counts = sub.groupby(["patient_nbr", "race"]).agg(
-        n=("race", "size"), last=("encounter_id", "max")
-    ).reset_index()
+    counts = sub.groupby(["patient_nbr", "race"]).agg(n=("race", "size"), last=("encounter_id", "max")).reset_index()
     best = counts.sort_values(["patient_nbr", "n", "last"]).groupby("patient_nbr").tail(1)
     lookup = best.set_index("patient_nbr")["race"]
     rows = df["patient_nbr"].isin(multi)

@@ -25,8 +25,7 @@ class RecordingBackend:
         self.calls = []
 
     def __call__(self, X_context, y_context, X_query):
-        self.calls.append({"context": X_context.index, "query": X_query.index,
-                           "columns": list(X_context.columns)})
+        self.calls.append({"context": X_context.index, "query": X_query.index, "columns": list(X_context.columns)})
         return np.random.RandomState(0).rand(len(X_query))
 
 
@@ -38,8 +37,14 @@ def _synthetic_data(n_patients=400, seed=0) -> ModelData:
     X = pd.DataFrame({c: ("a" if c in CATEGORICAL_FEATURES else 0) for c in FEATURES}, index=range(n))
     X["discharge_disposition_id_desc"] = np.where(rng.rand(n) < 0.3, NO_FOLLOW_UP_DISCHARGE[3], "Home")
     y = pd.Series((rng.rand(n) < 0.2).astype(int))
-    return ModelData(X_train=X, y_train=y, groups_train=pd.Series(patients),
-                     folds_train=pd.Series(patients % 5), X_test=X.iloc[:0], y_test=y.iloc[:0])
+    return ModelData(
+        X_train=X,
+        y_train=y,
+        groups_train=pd.Series(patients),
+        folds_train=pd.Series(patients % 5),
+        X_test=X.iloc[:0],
+        y_test=y.iloc[:0],
+    )
 
 
 def _assert_no_patient_in_both(backend, groups):
@@ -60,8 +65,7 @@ def test_context_patients_never_in_query_rows():
 def test_context_patients_never_in_query_rows_real_folds():
     data = load_model_data()
     backend = RecordingBackend()
-    per_fold, oof = kumo_cv("mock", KumoTabularClassifier(max_context=55_000, backend=backend), data,
-                            log=False)
+    per_fold, oof = kumo_cv("mock", KumoTabularClassifier(max_context=55_000, backend=backend), data, log=False)
     _assert_no_patient_in_both(backend, data.groups_train)
     assert per_fold["n_context"].eq(55_000).all() and oof.notna().all()
 
@@ -87,8 +91,9 @@ def test_stratified_context_keeps_positive_rate_and_is_reproducible():
 def test_kumo_cv_logs_only_validation(tmp_path):
     data = _synthetic_data()
     path = tmp_path / "experiments.csv"
-    per_fold, _ = kumo_cv("mock", KumoTabularClassifier(max_context=300, backend=RecordingBackend()),
-                          data, path=str(path), history=None)
+    per_fold, _ = kumo_cv(
+        "mock", KumoTabularClassifier(max_context=300, backend=RecordingBackend()), data, path=str(path), history=None
+    )
     log = pd.read_csv(path)
     assert log["dataset"].tolist() == ["validation"]
     assert "Só validação" in log.loc[0, "note"] and "backend" not in log.loc[0, "params"]

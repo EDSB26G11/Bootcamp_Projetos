@@ -6,8 +6,7 @@ import pytest
 
 from src.models.baselines import ColumnRanker, baseline_models, candidate_models, simple_models
 from src.models.evaluate import cv_predict, metrics_by_group, precision_at_k, recall_at_k, score_metrics, summarize
-from src.models.threshold import (capacity_table, confusion_at_k, gains_curve, rank_baseline_at_k,
-                                  threshold_for_capacity)
+from src.models.threshold import capacity_table, confusion_at_k, gains_curve, rank_baseline_at_k, threshold_for_capacity
 from src.models.train import log_experiment, run_cv
 from src.pipeline import PROCESSED, SPLITS, ModelData
 
@@ -57,7 +56,8 @@ def test_capacity_threshold():
         assert tab.loc[k, "pct_sinalizados"] == pytest.approx(k, abs=0.005)
         assert tab.loc[k, "lift"] == pytest.approx(tab.loc[k, "precision"] / y.mean())
         assert tab.loc[k, "readm_encontradas_por_1000_altas"] == pytest.approx(
-            1000 * tab.loc[k, "pct_sinalizados"] * tab.loc[k, "precision"])
+            1000 * tab.loc[k, "pct_sinalizados"] * tab.loc[k, "precision"]
+        )
     assert "tier" not in " ".join(tab.columns)
     assert (s >= threshold_for_capacity(s, 0.1)).mean() == pytest.approx(0.1, abs=0.002)
 

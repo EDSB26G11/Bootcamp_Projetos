@@ -72,6 +72,7 @@ class Check:
 
 # --- helpers -----------------------------------------------------------------
 
+
 def age_lower(df: pd.DataFrame) -> pd.Series:
     """Limite inferior da banda de idade ("[70-80)" -> 70)."""
     return df["age"].str.extract(r"\[(\d+)", expand=False).astype(int)
@@ -98,6 +99,7 @@ def _by_patient(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # --- A. coerência dentro do encontro -----------------------------------------
+
 
 def newborn_not_infant(df):
     return (df["admission_type_id"] == NEWBORN_ADMISSION_TYPE) & (age_lower(df) >= 10)
@@ -147,6 +149,7 @@ def number_diagnoses_too_low(df):
 
 # --- B. formato e domínio ----------------------------------------------------
 
+
 def icd9_malformed(df):
     bad = pd.Series(False, index=df.index)
     for c in DIAG_COLS:
@@ -157,7 +160,7 @@ def icd9_malformed(df):
 def out_of_domain(df, mappings: dict[str, pd.DataFrame] | None = None):
     """Valor fora do domínio esperado em alguma coluna (categóricas, IDs, ranges)."""
     bad = pd.Series(False, index=df.index)
-    med_cols = df.columns[df.columns.get_loc("metformin"): df.columns.get_loc("metformin-pioglitazone") + 1]
+    med_cols = df.columns[df.columns.get_loc("metformin") : df.columns.get_loc("metformin-pioglitazone") + 1]
     domains = {**CATEGORICAL_DOMAINS, **{c: MED_VALUES for c in med_cols}}
     if mappings is not None:
         domains |= {col: set(m[col]) for col, m in mappings.items()}
@@ -181,6 +184,7 @@ def no_diabetes_code(df):
 
 
 # --- C. coerência do doente entre encontros ----------------------------------
+
 
 def patient_gender_inconsistent(df):
     return df.groupby("patient_nbr")["gender"].transform("nunique") > 1
@@ -257,23 +261,22 @@ def run_checks(df: pd.DataFrame, mappings: dict[str, pd.DataFrame] | None = None
     for check in CHECKS:
         mask = check.func(df, mappings) if check.func is out_of_domain else check.func(df)
         n = int(mask.sum())
-        rows.append({
-            "id": check.id,
-            "camada": check.camada,
-            "descricao": check.descricao,
-            "severidade": check.severidade,
-            "n": n,
-            "%": round(100 * n / len(df), 3),
-        })
+        rows.append(
+            {
+                "id": check.id,
+                "camada": check.camada,
+                "descricao": check.descricao,
+                "severidade": check.severidade,
+                "n": n,
+                "%": round(100 * n / len(df), 3),
+            }
+        )
     return pd.DataFrame(rows).set_index("id")
 
 
 def check_masks(df: pd.DataFrame, mappings: dict[str, pd.DataFrame] | None = None) -> pd.DataFrame:
     """Uma coluna booleana por regra, para cruzar regras ou agregar violações."""
-    return pd.DataFrame({
-        c.id: c.func(df, mappings) if c.func is out_of_domain else c.func(df)
-        for c in CHECKS
-    })
+    return pd.DataFrame({c.id: c.func(df, mappings) if c.func is out_of_domain else c.func(df) for c in CHECKS})
 
 
 def impossible_encounters(df: pd.DataFrame, mappings: dict[str, pd.DataFrame] | None = None) -> pd.Series:

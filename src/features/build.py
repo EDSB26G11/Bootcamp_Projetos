@@ -13,17 +13,42 @@ from src.data.quality import icd9_numeric
 DIAG_COLS = ["diag_1", "diag_2", "diag_3"]
 
 MED_COLS = [
-    "metformin", "repaglinide", "nateglinide", "chlorpropamide", "glimepiride",
-    "acetohexamide", "glipizide", "glyburide", "tolbutamide", "pioglitazone",
-    "rosiglitazone", "acarbose", "miglitol", "troglitazone", "tolazamide",
-    "examide", "citoglipton", "insulin", "glyburide-metformin",
-    "glipizide-metformin", "glimepiride-pioglitazone", "metformin-rosiglitazone",
+    "metformin",
+    "repaglinide",
+    "nateglinide",
+    "chlorpropamide",
+    "glimepiride",
+    "acetohexamide",
+    "glipizide",
+    "glyburide",
+    "tolbutamide",
+    "pioglitazone",
+    "rosiglitazone",
+    "acarbose",
+    "miglitol",
+    "troglitazone",
+    "tolazamide",
+    "examide",
+    "citoglipton",
+    "insulin",
+    "glyburide-metformin",
+    "glipizide-metformin",
+    "glimepiride-pioglitazone",
+    "metformin-rosiglitazone",
     "metformin-pioglitazone",
 ]
 # Medicamentos com uso suficiente para ficarem como coluna própria (≥1,5%).
 # Os restantes só entram nas contagens agregadas (D15).
-KEPT_MEDS = ["metformin", "repaglinide", "glimepiride", "glipizide", "glyburide",
-             "pioglitazone", "rosiglitazone", "insulin"]
+KEPT_MEDS = [
+    "metformin",
+    "repaglinide",
+    "glimepiride",
+    "glipizide",
+    "glyburide",
+    "pioglitazone",
+    "rosiglitazone",
+    "insulin",
+]
 
 VISIT_COLS = ["number_outpatient", "number_emergency", "number_inpatient"]
 
@@ -81,17 +106,32 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 # --- T1.9: colunas que entram no modelo (D15) --------------------------------
 
 NUMERIC_FEATURES = [
-    "age_band", "time_in_hospital", "num_lab_procedures", "num_procedures",
-    "num_medications", "number_diagnoses", "n_meds", "n_meds_up", "n_meds_down",
+    "age_band",
+    "time_in_hospital",
+    "num_lab_procedures",
+    "num_procedures",
+    "num_medications",
+    "number_diagnoses",
+    "n_meds",
+    "n_meds_up",
+    "n_meds_down",
 ]
 # Contagens muito assimétricas (66-89% de zeros): log1p no pipeline (T1.10).
 COUNT_FEATURES = VISIT_COLS + ["n_visits_prior"]
 BINARY_FEATURES = ["diabetes_complicated"]
 CATEGORICAL_FEATURES = [
-    "race", "gender", "payer_code", "medical_specialty",
-    "admission_type_id_desc", "discharge_disposition_id_desc", "admission_source_id_desc",
-    "A1Cresult", "max_glu_serum",
-    "diag_1_group", "diag_2_group", "diag_3_group",
+    "race",
+    "gender",
+    "payer_code",
+    "medical_specialty",
+    "admission_type_id_desc",
+    "discharge_disposition_id_desc",
+    "admission_source_id_desc",
+    "A1Cresult",
+    "max_glu_serum",
+    "diag_1_group",
+    "diag_2_group",
+    "diag_3_group",
 ] + KEPT_MEDS
 FEATURES = NUMERIC_FEATURES + COUNT_FEATURES + BINARY_FEATURES + CATEGORICAL_FEATURES
 
@@ -109,8 +149,11 @@ DROPPED = {
     "admission_type_id": "substituído por admission_type_id_desc (D5)",
     "discharge_disposition_id": "substituído por discharge_disposition_id_desc (D5)",
     "admission_source_id": "substituído por admission_source_id_desc (D5)",
-    **{m: "quase constante (>= 99,3% No); só nas contagens" for m in MED_COLS
-       if m not in KEPT_MEDS + ["examide", "citoglipton"]},
+    **{
+        m: "quase constante (>= 99,3% No); só nas contagens"
+        for m in MED_COLS
+        if m not in KEPT_MEDS + ["examide", "citoglipton"]
+    },
 }
 
 

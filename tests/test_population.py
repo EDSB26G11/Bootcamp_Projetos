@@ -61,8 +61,17 @@ def test_real_file_without_impossible_encounters():
 
 
 def test_follow_up_eligible():
-    df = pd.DataFrame({"discharge_disposition_id_desc": [
-        "Discharged to home", NO_FOLLOW_UP_DISCHARGE[3], "Desconhecido", NO_FOLLOW_UP_DISCHARGE[22], "Left AMA"]})
+    df = pd.DataFrame(
+        {
+            "discharge_disposition_id_desc": [
+                "Discharged to home",
+                NO_FOLLOW_UP_DISCHARGE[3],
+                "Desconhecido",
+                NO_FOLLOW_UP_DISCHARGE[22],
+                "Left AMA",
+            ]
+        }
+    )
     assert follow_up_eligible(df).tolist() == [True, False, True, False, True]
     assert not set(NO_FOLLOW_UP_DISCHARGE) & set(DEATH_DISCHARGE_IDS)
 

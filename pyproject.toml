@@ -1,0 +1,8 @@
+# Formatação do código com o Black (W3). Linhas até 120 caracteres, como no resto do projeto.
+[tool.black]
+line-length = 120
+target-version = ["py313"]
+
+# O pytest só procura testes em tests/ (os scripts em scripts/ não são testes).
+[tool.pytest.ini_options]
+testpaths = ["tests"]

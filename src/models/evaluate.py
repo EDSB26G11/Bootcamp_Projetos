@@ -72,8 +72,7 @@ def cv_predict(model, data: ModelData):
     oof = pd.Series(np.nan, index=data.y_train.index, name="oof_score")
     for k, (tr, va) in enumerate(cv_splits(data)):
         m = clone(model).fit(data.X_train.iloc[tr], data.y_train.iloc[tr])
-        train_rows.append({"fold": k, **score_metrics(data.y_train.iloc[tr],
-                                                      predict_scores(m, data.X_train.iloc[tr]))})
+        train_rows.append({"fold": k, **score_metrics(data.y_train.iloc[tr], predict_scores(m, data.X_train.iloc[tr]))})
         scores = predict_scores(m, data.X_train.iloc[va])
         oof.iloc[va] = scores
         val_rows.append({"fold": k, **score_metrics(data.y_train.iloc[va], scores)})
@@ -100,13 +99,19 @@ def oof_permutation_importance(model, data: ModelData, n_repeats: int = 5) -> pd
     per_fold = []
     for tr, va in cv_splits(data):
         m = clone(model).fit(data.X_train.iloc[tr], data.y_train.iloc[tr])
-        r = permutation_importance(m, data.X_train.iloc[va], data.y_train.iloc[va],
-                                   scoring="average_precision", n_repeats=n_repeats,
-                                   random_state=SEED)
+        r = permutation_importance(
+            m,
+            data.X_train.iloc[va],
+            data.y_train.iloc[va],
+            scoring="average_precision",
+            n_repeats=n_repeats,
+            random_state=SEED,
+        )
         per_fold.append(pd.Series(r.importances_mean, index=data.X_train.columns))
     imp = pd.concat(per_fold, axis=1)
-    return (pd.DataFrame({"importance": imp.mean(axis=1), "std": imp.std(axis=1)})
-            .sort_values("importance", ascending=False))
+    return pd.DataFrame({"importance": imp.mean(axis=1), "std": imp.std(axis=1)}).sort_values(
+        "importance", ascending=False
+    )
 
 
 def metrics_by_group(y, scores, groups, k: float = 0.10, min_n: int = 100) -> pd.DataFrame:
@@ -115,17 +120,22 @@ def metrics_by_group(y, scores, groups, k: float = 0.10, min_n: int = 100) -> pd
     O top k% é calculado na população toda (a equipa de follow-up é só uma),
     e depois vê-se, em cada grupo, a taxa de sinalizados e o recall.
     """
-    df = pd.DataFrame({"y": np.asarray(y), "s": np.asarray(scores), "g": np.asarray(groups),
-                       "flag": _top_k(scores, k)})
+    df = pd.DataFrame({"y": np.asarray(y), "s": np.asarray(scores), "g": np.asarray(groups), "flag": _top_k(scores, k)})
     rows = []
     for g, d in df.groupby("g", observed=True):
         if len(d) < min_n:
             continue
-        rows.append({"group": g, "n": len(d), "positive_rate": d["y"].mean(),
-                     "flagged_rate": d["flag"].mean(),
-                     "recall": d.loc[d["y"] == 1, "flag"].mean(),
-                     "precision": d.loc[d["flag"], "y"].mean() if d["flag"].any() else np.nan,
-                     "pr_auc": average_precision_score(d["y"], d["s"]) if d["y"].nunique() > 1 else np.nan})
+        rows.append(
+            {
+                "group": g,
+                "n": len(d),
+                "positive_rate": d["y"].mean(),
+                "flagged_rate": d["flag"].mean(),
+                "recall": d.loc[d["y"] == 1, "flag"].mean(),
+                "precision": d.loc[d["flag"], "y"].mean() if d["flag"].any() else np.nan,
+                "pr_auc": average_precision_score(d["y"], d["s"]) if d["y"].nunique() > 1 else np.nan,
+            }
+        )
     return pd.DataFrame(rows).set_index("group")
 
 
@@ -139,7 +149,6 @@ def calibration_table(y, scores, n_bins: int = 10) -> pd.DataFrame:
     """
     d = pd.DataFrame({"y": np.asarray(y), "s": np.asarray(scores)})
     d["grupo"] = pd.qcut(d["s"].rank(method="first"), n_bins, labels=range(1, n_bins + 1))
-    out = d.groupby("grupo", observed=True).agg(n=("y", "size"), risco_previsto=("s", "mean"),
-                                                observado=("y", "mean"))
+    out = d.groupby("grupo", observed=True).agg(n=("y", "size"), risco_previsto=("s", "mean"), observado=("y", "mean"))
     out["diferenca"] = out["risco_previsto"] - out["observado"]
     return out

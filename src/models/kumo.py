@@ -73,8 +73,13 @@ def default_device() -> str:
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def kumo_backend(size: str = "small", num_estimators: int = 4, device: str | None = None,
-                 random_state: int = SEED, query_batch_size: int = 20_000) -> Backend:
+def kumo_backend(
+    size: str = "small",
+    num_estimators: int = 4,
+    device: str | None = None,
+    random_state: int = SEED,
+    query_batch_size: int = 20_000,
+) -> Backend:
     """Backend real: o KumoTabular do sdm (pesos do Hugging Face Hub, ~110 MB
     para o "small"). Com a mesma seed no gerador, a mesma previsão em cada
     corrida; partir as linhas a prever em lotes não muda o resultado (as linhas
@@ -90,17 +95,20 @@ def kumo_backend(size: str = "small", num_estimators: int = 4, device: str | Non
             _MODELS[key] = sdm.models.KumoTabular(task="classification", size=size, device=device)
         model = _MODELS[key]
         stypes = column_types(list(X_context.columns) + [TARGET])
-        table = lambda df: sdm.TableTensor.from_pandas(
-            df=df, stypes={c: stypes[c] for c in df.columns}, device=device)
+        table = lambda df: sdm.TableTensor.from_pandas(df=df, stypes={c: stypes[c] for c in df.columns}, device=device)
         context = table(X_context.assign(**{TARGET: np.asarray(y_context).astype(str)}))
         x_context, y_ctx = context.drop_columns(TARGET), context[:, TARGET]
         out = []
         for start in range(0, len(X_query), query_batch_size):
-            query = table(X_query.iloc[start:start + query_batch_size])
+            query = table(X_query.iloc[start : start + query_batch_size])
             with torch.inference_mode():
-                pred = model(x_context=x_context, y_context=y_ctx, x_query=query,
-                             num_estimators=num_estimators,
-                             generator=torch.Generator(device).manual_seed(random_state))
+                pred = model(
+                    x_context=x_context,
+                    y_context=y_ctx,
+                    x_query=query,
+                    num_estimators=num_estimators,
+                    generator=torch.Generator(device).manual_seed(random_state),
+                )
             out.append(pred.to_pandas()["1"].to_numpy())
         return np.concatenate(out)
 
@@ -116,8 +124,16 @@ class KumoTabularClassifier(ClassifierMixin, BaseEstimator):
     com esse contexto. `backend=None` usa o Kumo real; os testes passam um mock.
     """
 
-    def __init__(self, max_context=DEFAULT_CONTEXT, size="small", num_estimators=4,
-                 device=None, random_state=SEED, query_batch_size=20_000, backend=None):
+    def __init__(
+        self,
+        max_context=DEFAULT_CONTEXT,
+        size="small",
+        num_estimators=4,
+        device=None,
+        random_state=SEED,
+        query_batch_size=20_000,
+        backend=None,
+    ):
         self.max_context = max_context
         self.size = size
         self.num_estimators = num_estimators
@@ -138,14 +154,14 @@ class KumoTabularClassifier(ClassifierMixin, BaseEstimator):
     def _backend(self) -> Backend:
         if self.backend is not None:
             return self.backend
-        return kumo_backend(self.size, self.num_estimators, self.device, self.random_state,
-                            self.query_batch_size)
+        return kumo_backend(self.size, self.num_estimators, self.device, self.random_state, self.query_batch_size)
 
     def predict_proba(self, X):
         backend = self._backend()
         cuda = getattr(backend, "device", None) == "cuda"
         if cuda:
             import torch
+
             torch.cuda.synchronize()
             torch.cuda.reset_peak_memory_stats()
         t0 = time.perf_counter()
@@ -165,8 +181,7 @@ class KumoTabularClassifier(ClassifierMixin, BaseEstimator):
 def eligible_at_k(y, scores, eligible) -> dict:
     """Recall e precisão @10% e @20% só nas altas elegíveis (D21), como no notebook 04."""
     m = score_metrics(np.asarray(y)[eligible], np.asarray(scores)[eligible])
-    return {f"{c}_eleg": m[c] for k in TOP_K
-            for c in (f"recall_at_{int(k * 100)}", f"precision_at_{int(k * 100)}")}
+    return {f"{c}_eleg": m[c] for k in TOP_K for c in (f"recall_at_{int(k * 100)}", f"precision_at_{int(k * 100)}")}
 
 
 VALIDATION_ONLY_NOTE = (
@@ -181,9 +196,17 @@ def _params(model: KumoTabularClassifier) -> str:
     return json.dumps(p, default=str, sort_keys=True)
 
 
-def kumo_cv(name: str, model: KumoTabularClassifier, data: ModelData, notes: str = "",
-            folds=None, log: bool = True, path: str = EXPERIMENTS, history: str | None = HISTORY,
-            allow_cpu: bool = False):
+def kumo_cv(
+    name: str,
+    model: KumoTabularClassifier,
+    data: ModelData,
+    notes: str = "",
+    folds=None,
+    log: bool = True,
+    path: str = EXPERIMENTS,
+    history: str | None = HISTORY,
+    allow_cpu: bool = False,
+):
     """CV do desafiante nos folds de D13 (por defeito os 5; `folds` escolhe alguns).
 
     Devolve (por_fold, oof): por_fold tem as métricas de score_metrics na
@@ -199,21 +222,40 @@ def kumo_cv(name: str, model: KumoTabularClassifier, data: ModelData, notes: str
     for k in folds:
         tr, va = splits[k]
         m = model.__class__(**model.get_params()).fit(data.X_train.iloc[tr], data.y_train.iloc[tr])
-        if model.backend is None and not allow_cpu and default_device() == "cpu" \
-                and len(m.context_X_) > CPU_CONTEXT_LIMIT:
-            raise RuntimeError(f"Sem GPU: contexto de {len(m.context_X_):,} linhas demoraria horas. "
-                               "Usar uma GPU (Colab T4) ou allow_cpu=True.")
+        if (
+            model.backend is None
+            and not allow_cpu
+            and default_device() == "cpu"
+            and len(m.context_X_) > CPU_CONTEXT_LIMIT
+        ):
+            raise RuntimeError(
+                f"Sem GPU: contexto de {len(m.context_X_):,} linhas demoraria horas. "
+                "Usar uma GPU (Colab T4) ou allow_cpu=True."
+            )
         scores = m.predict_proba(data.X_train.iloc[va])[:, 1]
         oof.iloc[va] = scores
         y_va = data.y_train.iloc[va]
-        rows.append({"fold": k, **score_metrics(y_va, scores), **eligible_at_k(y_va, scores, eligible[va]),
-                     "n_context": len(m.context_X_), "n_query": len(va),
-                     "seconds": m.last_seconds_, "gpu_peak_gb": m.last_peak_gb_})
+        rows.append(
+            {
+                "fold": k,
+                **score_metrics(y_va, scores),
+                **eligible_at_k(y_va, scores, eligible[va]),
+                "n_context": len(m.context_X_),
+                "n_query": len(va),
+                "seconds": m.last_seconds_,
+                "gpu_peak_gb": m.last_peak_gb_,
+            }
+        )
     per_fold = pd.DataFrame(rows).set_index("fold")
     if log and len(per_fold) == len(splits):
         extra = ("n_context", "n_query", "seconds", "gpu_peak_gb")
-        metrics = per_fold[[c for c in per_fold.columns  # mesmas colunas das outras linhas
-                            if not c.endswith("_eleg") and c not in extra]]
+        metrics = per_fold[
+            [
+                c
+                for c in per_fold.columns  # mesmas colunas das outras linhas
+                if not c.endswith("_eleg") and c not in extra
+            ]
+        ]
         note = " ".join(x for x in (notes, VALIDATION_ONLY_NOTE) if x)
         row = _log_row(name, "validation", metrics, note, _params(model))
         log_experiment(row, path)

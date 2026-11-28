@@ -32,11 +32,19 @@ def capacity_table(y, scores, capacities=CAPACITIES) -> pd.DataFrame:
         flag = scores >= t
         tp = (flag & (y == 1)).sum()
         precision = tp / max(flag.sum(), 1)
-        rows.append({"k": k, "threshold": t, "n_sinalizados": int(flag.sum()),
-                     "pct_sinalizados": flag.mean(), "recall": tp / y.sum(),
-                     "precision": precision, "lift": precision / base_rate,
-                     "readm_por_100_followups": 100 * precision,
-                     "readm_encontradas_por_1000_altas": 1000 * flag.mean() * precision})
+        rows.append(
+            {
+                "k": k,
+                "threshold": t,
+                "n_sinalizados": int(flag.sum()),
+                "pct_sinalizados": flag.mean(),
+                "recall": tp / y.sum(),
+                "precision": precision,
+                "lift": precision / base_rate,
+                "readm_por_100_followups": 100 * precision,
+                "readm_encontradas_por_1000_altas": 1000 * flag.mean() * precision,
+            }
+        )
     return pd.DataFrame(rows).set_index("k")
 
 
@@ -61,8 +69,13 @@ def rank_baseline_at_k(y, number_inpatient, k: float, n_draws: int = 20, seed: i
         top = _top_k_draw(number_inpatient, k, rng)
         rec.append(y[top].sum() / y.sum())
         prec.append(y[top].mean())
-    return {"k": k, "recall_mean": np.mean(rec), "recall_std": np.std(rec),
-            "precision_mean": np.mean(prec), "precision_std": np.std(prec)}
+    return {
+        "k": k,
+        "recall_mean": np.mean(rec),
+        "recall_std": np.std(rec),
+        "precision_mean": np.mean(prec),
+        "precision_std": np.std(prec),
+    }
 
 
 def confusion_at_k(y, scores, k: float) -> dict:

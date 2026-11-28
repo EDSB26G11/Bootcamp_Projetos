@@ -22,10 +22,12 @@ except ImportError:  # localmente e no CI: não há ZeroGPU
     spaces = None
 
 if spaces is not None:
+
     @spaces.GPU
     def _zerogpu_startup_check():
         """Só existe para o ZeroGPU deixar o Space arrancar; nunca é chamada."""
         return None
+
 
 demo = build_app(load_model(MODEL_DIR))
 

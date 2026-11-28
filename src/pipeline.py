@@ -39,15 +39,14 @@ class ModelData:
     X_train: pd.DataFrame
     y_train: pd.Series
     groups_train: pd.Series  # patient_nbr, para CV agrupada
-    folds_train: pd.Series   # fold 0-4 de D13
+    folds_train: pd.Series  # fold 0-4 de D13
     X_test: pd.DataFrame
     y_test: pd.Series
 
 
 def read_processed(path: str = PROCESSED) -> pd.DataFrame:
     """Relê o CSV processado sem perder "None", "NULL" nem zeros à esquerda."""
-    return pd.read_csv(path, keep_default_na=False, na_values="",
-                       dtype={c: "string" for c in TEXT_COLUMNS})
+    return pd.read_csv(path, keep_default_na=False, na_values="", dtype={c: "string" for c in TEXT_COLUMNS})
 
 
 def load_model_data(processed: str = PROCESSED, splits: str = SPLITS) -> ModelData:
@@ -78,12 +77,19 @@ def build_preprocessor(exclude=(), extra_binary=()) -> ColumnTransformer:
     return ColumnTransformer(
         [
             ("num", StandardScaler(), keep(NUMERIC_FEATURES)),
-            ("counts", make_pipeline(FunctionTransformer(np.log1p, feature_names_out="one-to-one"),
-                                     StandardScaler()), keep(COUNT_FEATURES)),
+            (
+                "counts",
+                make_pipeline(FunctionTransformer(np.log1p, feature_names_out="one-to-one"), StandardScaler()),
+                keep(COUNT_FEATURES),
+            ),
             ("bin", "passthrough", keep(BINARY_FEATURES) + list(extra_binary)),
-            ("cat", OneHotEncoder(handle_unknown="infrequent_if_exist",
-                                  min_frequency=MIN_CATEGORY_COUNT,
-                                  sparse_output=False), keep(CATEGORICAL_FEATURES)),
+            (
+                "cat",
+                OneHotEncoder(
+                    handle_unknown="infrequent_if_exist", min_frequency=MIN_CATEGORY_COUNT, sparse_output=False
+                ),
+                keep(CATEGORICAL_FEATURES),
+            ),
         ],
         verbose_feature_names_out=False,
     )

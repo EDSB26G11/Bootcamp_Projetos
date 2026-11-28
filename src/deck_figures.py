@@ -41,7 +41,7 @@ OOF = Path("reports/oof_v1.csv")
 
 # Paleta do modelo NOVA IMS do deck.
 # Paleta e letra: as de src/viz.py (um só estilo para relatório, EDA e deck).
-CAPACITY = 0.20      # D24
+CAPACITY = 0.20  # D24
 AGE_BANDS = ["Menos de 40 anos", "40–59 anos", "60–79 anos", "80 ou mais anos"]
 
 # Destino da alta: nomes curtos em português (como no deck) e se fica na lista (D21).
@@ -76,20 +76,32 @@ MODEL_ROWS = [  # (modelo em experiments.csv, rótulo)
 
 def set_deck_style():
     """Arial (corpo do deck), sem grelha nem molduras, letra para ler num ecrã."""
-    mpl.rcParams.update({
-        "font.family": "Arial", "font.size": FONT, "axes.grid": False,
-        "axes.spines.top": False, "axes.spines.right": False, "axes.spines.bottom": False,
-        "axes.edgecolor": INK, "xtick.color": INK, "ytick.color": INK, "text.color": INK,
-        "savefig.dpi": 220, "savefig.bbox": "tight", "savefig.pad_inches": 0.05,
-        "hatch.linewidth": 0.8,
-    })
+    mpl.rcParams.update(
+        {
+            "font.family": "Arial",
+            "font.size": FONT,
+            "axes.grid": False,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.spines.bottom": False,
+            "axes.edgecolor": INK,
+            "xtick.color": INK,
+            "ytick.color": INK,
+            "text.color": INK,
+            "savefig.dpi": 220,
+            "savefig.bbox": "tight",
+            "savefig.pad_inches": 0.05,
+            "hatch.linewidth": 0.8,
+        }
+    )
 
 
 def load_train() -> pd.DataFrame:
     """Só as altas de treino (D13), pela mesma ordem de load_model_data(), com a
     previsão out-of-fold do v1 e a marca de elegível (D21). O teste não é lido."""
     df = read_processed(PROCESSED).merge(
-        pd.read_csv(SPLITS)[["encounter_id", "split", "fold"]], on="encounter_id", validate="1:1")
+        pd.read_csv(SPLITS)[["encounter_id", "split", "fold"]], on="encounter_id", validate="1:1"
+    )
     train = df[df["split"].eq("train")].reset_index(drop=True)
     oof = pd.read_csv(OOF)["oof_score"]
     assert len(oof) == len(train), "oof_v1.csv não tem uma linha por alta de treino"
@@ -109,12 +121,20 @@ def _hbars(ax, labels, values, colors, texts, xmax=None, height=0.62, edge=None,
     xmax = xmax or max(values) * 1.2
     ax.set_xlim(0, xmax)
     for b, t in zip(bars, texts):
-        ax.annotate(t, (b.get_width(), b.get_y() + b.get_height() / 2), xytext=(4, 0),
-                    textcoords="offset points", va="center", fontsize=FONT, fontweight="bold")
+        ax.annotate(
+            t,
+            (b.get_width(), b.get_y() + b.get_height() / 2),
+            xytext=(4, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=FONT,
+            fontweight="bold",
+        )
     return bars
 
 
 # --- Problema: para onde iria a lista sem a regra D21 -------------------------------------------
+
 
 def fig_destinos(tr: pd.DataFrame, k: float = CAPACITY):
     """Destino das altas no top k% de todas as altas de treino, antes de D21."""
@@ -123,23 +143,39 @@ def fig_destinos(tr: pd.DataFrame, k: float = CAPACITY):
     name = d["discharge_disposition_id_desc"].map(DEST)
     name = name.where(name.notna(), np.where(d["eligible"], "Outros, ficam na lista", "Outros, saem da lista"))
     share = name.value_counts(normalize=True)
-    share = pd.concat([share.drop(["Outros, ficam na lista", "Outros, saem da lista"]).sort_values(ascending=False),
-                       share[["Outros, ficam na lista", "Outros, saem da lista"]]])
+    share = pd.concat(
+        [
+            share.drop(["Outros, ficam na lista", "Outros, saem da lista"]).sort_values(ascending=False),
+            share[["Outros, ficam na lista", "Outros, saem da lista"]],
+        ]
+    )
     out_list = 1 - d["eligible"].mean()
     rest = float(share[["Outros, ficam na lista", "Outros, saem da lista"]].sum())
     stays = {"Casa (sem apoio)", "Outros, ficam na lista"}
     fig, ax = plt.subplots(figsize=(7.2, 4.0))
-    _hbars(ax, list(share.index), list(share.values), [GREEN if s in stays else INK for s in share.index],
-           [pct(v, 0) for v in share.values])
-    return fig, {"k": k, "n_top": int(top.sum()), "pct_fora_da_lista": out_list,
-                 "pct_casa": float(share["Casa (sem apoio)"]), "pct_outros": rest,
-                 "partes": {k_: float(v) for k_, v in share.items()},
-                 "n_train": len(tr), "n_eligible": int(tr["eligible"].sum()),
-                 "pct_eligible": float(tr["eligible"].mean()),
-                 "base_rate_eligible": float(tr.loc[tr["eligible"], "target"].mean())}
+    _hbars(
+        ax,
+        list(share.index),
+        list(share.values),
+        [GREEN if s in stays else INK for s in share.index],
+        [pct(v, 0) for v in share.values],
+    )
+    return fig, {
+        "k": k,
+        "n_top": int(top.sum()),
+        "pct_fora_da_lista": out_list,
+        "pct_casa": float(share["Casa (sem apoio)"]),
+        "pct_outros": rest,
+        "partes": {k_: float(v) for k_, v in share.items()},
+        "n_train": len(tr),
+        "n_eligible": int(tr["eligible"].sum()),
+        "pct_eligible": float(tr["eligible"].mean()),
+        "base_rate_eligible": float(tr.loc[tr["eligible"], "target"].mean()),
+    }
 
 
 # --- Prova: dados (fuga por contagem de encontros) ------------------------------------------------
+
 
 def fig_fuga(tr: pd.DataFrame):
     """Taxa de readmissão <30 dias pelo nº de encontros do doente no dataset:
@@ -149,13 +185,25 @@ def fig_fuga(tr: pd.DataFrame):
     rate = tr.groupby(grp, observed=True)["target"].mean()
     share = grp.value_counts(normalize=True).reindex(rate.index)
     fig, ax = plt.subplots(figsize=(6.2, 2.9))
-    _hbars(ax, list(rate.index), list(rate.values), [CONTEXT, CONTEXT, INK],
-           [pct(v, 1) for v in rate.values], xmax=rate.max() * 1.3)
-    return fig, {"taxa_1": float(rate.iloc[0]), "taxa_2": float(rate.iloc[1]), "taxa_3mais": float(rate.iloc[2]),
-                 "pct_altas_1": float(share.iloc[0]), "pct_altas_3mais": float(share.iloc[2])}
+    _hbars(
+        ax,
+        list(rate.index),
+        list(rate.values),
+        [CONTEXT, CONTEXT, INK],
+        [pct(v, 1) for v in rate.values],
+        xmax=rate.max() * 1.3,
+    )
+    return fig, {
+        "taxa_1": float(rate.iloc[0]),
+        "taxa_2": float(rate.iloc[1]),
+        "taxa_3mais": float(rate.iloc[2]),
+        "pct_altas_1": float(share.iloc[0]),
+        "pct_altas_3mais": float(share.iloc[2]),
+    }
 
 
 # --- Prova: modelo contra a regra à mesma capacidade -----------------------------------------------
+
 
 def capacity_numbers(tr: pd.DataFrame, k: float) -> dict:
     """Readmissões encontradas a k% das altas elegíveis: modelo, regra e acaso."""
@@ -165,12 +213,23 @@ def capacity_numbers(tr: pd.DataFrame, k: float) -> dict:
     tp, pos = int(y[flag].sum()), int(y.sum())
     rule = rank_baseline_at_k(y, e["number_inpatient"].to_numpy(), k)
     rule_found = rule["recall_mean"] * pos
-    return {"k": k, "n": len(e), "contactos": int(flag.sum()), "positivos": pos, "modelo": tp,
-            "regra": float(rule_found), "acaso": k * pos, "recall_modelo": tp / pos,
-            "recall_regra": float(rule["recall_mean"]), "precisao_modelo": tp / flag.sum(),
-            "precisao_regra": float(rule["precision_mean"]), "delta": tp - rule_found,
-            "por_1000_modelo": 1000 * tp / len(e), "por_1000_regra": 1000 * rule_found / len(e),
-            "por_1000_acaso": 1000 * k * pos / len(e)}
+    return {
+        "k": k,
+        "n": len(e),
+        "contactos": int(flag.sum()),
+        "positivos": pos,
+        "modelo": tp,
+        "regra": float(rule_found),
+        "acaso": k * pos,
+        "recall_modelo": tp / pos,
+        "recall_regra": float(rule["recall_mean"]),
+        "precisao_modelo": tp / flag.sum(),
+        "precisao_regra": float(rule["precision_mean"]),
+        "delta": tp - rule_found,
+        "por_1000_modelo": 1000 * tp / len(e),
+        "por_1000_regra": 1000 * rule_found / len(e),
+        "por_1000_acaso": 1000 * k * pos / len(e),
+    }
 
 
 def fig_modelo_vs_regra(c: dict):
@@ -180,8 +239,9 @@ def fig_modelo_vs_regra(c: dict):
     delta = vals - c["regra"]
     lim = vals.max() * 1.22
     d_lo, d_hi = delta.min() * 1.35, max(delta.max(), 0) * 1.6 + 60
-    fig, (ax, axd) = plt.subplots(1, 2, figsize=(9.2, 3.4),
-                                  gridspec_kw={"width_ratios": [lim, d_hi - d_lo], "wspace": 0.05})
+    fig, (ax, axd) = plt.subplots(
+        1, 2, figsize=(9.2, 3.4), gridspec_kw={"width_ratios": [lim, d_hi - d_lo], "wspace": 0.05}
+    )
     _hbars(ax, labels, vals, [GREEN, INK, CONTEXT], [num(v) for v in vals], xmax=lim)
     ax.set_title("AC", loc="left", fontsize=FONT - 1, color=MID)
     y = np.arange(3)
@@ -195,13 +255,22 @@ def fig_modelo_vs_regra(c: dict):
     for yi, d in zip(y, delta):
         if abs(d) < 0.5:
             continue
-        axd.annotate(num(d, sign=True), (d, yi), xytext=(4 if d > 0 else -4, 0), textcoords="offset points",
-                     va="center", ha="left" if d > 0 else "right", fontsize=FONT, fontweight="bold")
+        axd.annotate(
+            num(d, sign=True),
+            (d, yi),
+            xytext=(4 if d > 0 else -4, 0),
+            textcoords="offset points",
+            va="center",
+            ha="left" if d > 0 else "right",
+            fontsize=FONT,
+            fontweight="bold",
+        )
     axd.set_title("Δ face à regra", loc="left", fontsize=FONT - 1, color=MID)
     return fig
 
 
 # --- Prova: matriz de confusão ------------------------------------------------------------------
+
 
 def confusion(y, s, t) -> dict:
     """Matriz com o corte t (previsto positivo = risco ≥ t = follow-up) e as
@@ -212,19 +281,32 @@ def confusion(y, s, t) -> dict:
     fn, tn = int((~flag & (y == 1)).sum()), int((~flag & (y == 0)).sum())
     n = tp + fp + fn + tn
     recall, spec = tp / (tp + fn), tn / (fp + tn)
-    return {"tp": tp, "fp": fp, "fn": fn, "tn": tn, "recall": recall, "precisao": tp / (tp + fp),
-            "especificidade": spec, "accuracy": (tp + tn) / n, "error_rate": (fp + fn) / n,
-            "f1": 2 * tp / (2 * tp + fp + fn), "balanced_accuracy": (recall + spec) / 2,
-            "sinalizadas": (tp + fp) / n, "accuracy_sempre_nao": (fp + tn) / n}
+    return {
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "tn": tn,
+        "recall": recall,
+        "precisao": tp / (tp + fp),
+        "especificidade": spec,
+        "accuracy": (tp + tn) / n,
+        "error_rate": (fp + fn) / n,
+        "f1": 2 * tp / (2 * tp + fp + fn),
+        "balanced_accuracy": (recall + spec) / 2,
+        "sinalizadas": (tp + fp) / n,
+        "accuracy_sempre_nao": (fp + tn) / n,
+    }
 
 
 # Convenção da aula 08 (slide 53): classe real nas colunas, classe prevista nas
 # linhas; TP em cima à esquerda, FP em cima à direita, FN em baixo à esquerda,
 # TN em baixo à direita. Positivo = readmissão em menos de 30 dias.
-CELLS = {(0, 0): ("tp", "TP", GREEN, INK, "readmissões encontradas"),
-         (0, 1): ("fp", "FP", CONTEXT, INK, "follow-ups sem readmissão"),
-         (1, 0): ("fn", "FN", INK, "white", "readmissões que escapam"),
-         (1, 1): ("tn", "TN", "white", INK, "bem deixadas de fora")}
+CELLS = {
+    (0, 0): ("tp", "TP", GREEN, INK, "readmissões encontradas"),
+    (0, 1): ("fp", "FP", CONTEXT, INK, "follow-ups sem readmissão"),
+    (1, 0): ("fn", "FN", INK, "white", "readmissões que escapam"),
+    (1, 1): ("tn", "TN", "white", INK, "bem deixadas de fora"),
+}
 
 
 def _matrix(ax, m: dict, fs: float, show_labels: bool = True):
@@ -232,8 +314,16 @@ def _matrix(ax, m: dict, fs: float, show_labels: bool = True):
     for (r, c), (key, code, face, txt, lab) in CELLS.items():
         ax.add_patch(plt.Rectangle((c, 1 - r), 1, 1, facecolor=face, edgecolor=MID, lw=0.8))
         ax.text(c + 0.06, 2 - r - 0.1, code, ha="left", va="top", fontsize=fs - 1, fontweight="bold", color=txt)
-        ax.text(c + 0.5, 1 - r + (0.55 if show_labels else 0.5), num(m[key]), ha="center", va="center",
-                fontsize=fs + 6, fontweight="bold", color=txt)
+        ax.text(
+            c + 0.5,
+            1 - r + (0.55 if show_labels else 0.5),
+            num(m[key]),
+            ha="center",
+            va="center",
+            fontsize=fs + 6,
+            fontweight="bold",
+            color=txt,
+        )
         if show_labels:
             ax.text(c + 0.5, 1 - r + 0.24, lab, ha="center", va="center", fontsize=fs - 2, color=txt)
     ax.set_xlim(-0.62, 2)
@@ -261,13 +351,21 @@ def fig_confusao_anexo(m: dict, title: str):
     fig, ax = plt.subplots(figsize=(6.0, 2.6))
     _matrix(ax, m, fs, show_labels=False)
     ax.set_title(title, loc="left", fontsize=fs + 1, fontweight="bold", pad=2)
-    fig.text(0.02, -0.02, f"Precisão {pct(m['precisao'])} · recall {pct(m['recall'])} · especificidade "
-             f"{pct(m['especificidade'])} · F1 {num(m['f1'], 2)} · accuracy {pct(m['accuracy'])} · "
-             f"balanced accuracy {pct(m['balanced_accuracy'])}", fontsize=fs - 1, color=INK, va="top")
+    fig.text(
+        0.02,
+        -0.02,
+        f"Precisão {pct(m['precisao'])} · recall {pct(m['recall'])} · especificidade "
+        f"{pct(m['especificidade'])} · F1 {num(m['f1'], 2)} · accuracy {pct(m['accuracy'])} · "
+        f"balanced accuracy {pct(m['balanced_accuracy'])}",
+        fontsize=fs - 1,
+        color=INK,
+        va="top",
+    )
     return fig
 
 
 # --- Prova: risco calibrado ---------------------------------------------------------------------
+
 
 def fig_calibracao(cal: pd.DataFrame):
     """Por decil de risco: observado (AC, sólido), previsto (FC, tracejado) e ΔFC em pp."""
@@ -284,8 +382,15 @@ def fig_calibracao(cal: pd.DataFrame):
     ax.xaxis.set_visible(False)
     ax.set_xlim(0, max(obs.max(), prev.max()) * 1.2)
     for b, v, w in zip(bars, obs, np.maximum(obs, prev)):
-        ax.annotate(num(v, 1), (w, b.get_y() + b.get_height() / 2), xytext=(4, 0),
-                    textcoords="offset points", va="center", fontsize=FONT - 1, fontweight="bold")
+        ax.annotate(
+            num(v, 1),
+            (w, b.get_y() + b.get_height() / 2),
+            xytext=(4, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=FONT - 1,
+            fontweight="bold",
+        )
     ax.set_title("FC (tracejado) · AC (sólido), em %", loc="left", fontsize=FONT - 1, color=MID)
     lim = max(abs(diff).max() * 1.9, 1.0)
     axd.barh(y, diff, color=BLUE, height=0.55)
@@ -296,14 +401,26 @@ def fig_calibracao(cal: pd.DataFrame):
     axd.xaxis.set_visible(False)
     axd.spines["left"].set_visible(False)
     for yi, d in zip(y, diff):
-        axd.annotate(num(d, 1, sign=True) if abs(d) >= 0.05 else "±0,0", (d, yi), xytext=(3 if d >= 0 else -3, 0),
-                     textcoords="offset points", va="center", ha="left" if d >= 0 else "right", fontsize=FONT - 2)
+        axd.annotate(
+            num(d, 1, sign=True) if abs(d) >= 0.05 else "±0,0",
+            (d, yi),
+            xytext=(3 if d >= 0 else -3, 0),
+            textcoords="offset points",
+            va="center",
+            ha="left" if d >= 0 else "right",
+            fontsize=FONT - 2,
+        )
     axd.set_title("ΔFC (pp)", loc="left", fontsize=FONT - 1, color=MID)
-    return fig, {"max_diff_pp": float(abs(diff).max()), "decil_max": int(cal.index[np.argmax(abs(diff))]),
-                 "decil10_obs": float(obs[-1]), "decil1_obs": float(obs[0])}
+    return fig, {
+        "max_diff_pp": float(abs(diff).max()),
+        "decil_max": int(cal.index[np.argmax(abs(diff))]),
+        "decil10_obs": float(obs[-1]),
+        "decil1_obs": float(obs[0]),
+    }
 
 
 # --- Prova: equidade ----------------------------------------------------------------------------
+
 
 def fairness_table(tr: pd.DataFrame, k: float = CAPACITY) -> pd.DataFrame:
     """Recall e altas sinalizadas por sexo, raça e idade, com o top k% das
@@ -326,8 +443,17 @@ def fairness_table(tr: pd.DataFrame, k: float = CAPACITY) -> pd.DataFrame:
 def fig_equidade(tab: pd.DataFrame, total: float):
     """Recall por grupo (AC) e Δ face ao recall no total, em pp (vermelho =
     o grupo fica para trás). Só grupos com ≥ 100 altas elegíveis."""
-    keep = ["Mulheres", "Homens", "Caucasian", "AfricanAmerican", "Hispanic", "Asian", "Other",
-            "Raça em falta", *AGE_BANDS]
+    keep = [
+        "Mulheres",
+        "Homens",
+        "Caucasian",
+        "AfricanAmerican",
+        "Hispanic",
+        "Asian",
+        "Other",
+        "Raça em falta",
+        *AGE_BANDS,
+    ]
     t = tab.loc[[g for g in keep if g in tab.index]]
     labels = [f"{g} ({num(n)})" for g, n in zip(t.index, t["n"])]
     rec = t["recall"].to_numpy()
@@ -345,8 +471,15 @@ def fig_equidade(tab: pd.DataFrame, total: float):
     axd.xaxis.set_visible(False)
     axd.spines["left"].set_visible(False)
     for yi, d in zip(y, diff):
-        axd.annotate(num(d, 0, sign=True) if round(d) != 0 else "±0", (d, yi), xytext=(3 if d >= 0 else -3, 0), textcoords="offset points",
-                     va="center", ha="left" if d >= 0 else "right", fontsize=FONT - 1)
+        axd.annotate(
+            num(d, 0, sign=True) if round(d) != 0 else "±0",
+            (d, yi),
+            xytext=(3 if d >= 0 else -3, 0),
+            textcoords="offset points",
+            va="center",
+            ha="left" if d >= 0 else "right",
+            fontsize=FONT - 1,
+        )
     axd.set_title("Δ face ao total (pp)", loc="left", fontsize=FONT - 1, color=MID)
     for sep in (1.5, 7.5):  # separa sexo, raça e idade
         for a in (ax, axd):
@@ -355,6 +488,7 @@ def fig_equidade(tab: pd.DataFrame, total: float):
 
 
 # --- Anexos: modelos e importância --------------------------------------------------------------
+
 
 def fig_modelos(exp: pd.DataFrame):
     """PR-AUC na validação (média dos 5 folds) por modelo; verde = v1."""
@@ -379,6 +513,7 @@ def fig_importancia(imp: pd.DataFrame, n: int = 6):
 
 # --- Curva de ganhos (relatório e deck) ------------------------------------------------------------
 
+
 def gains_table(y, scores, number_inpatient) -> pd.DataFrame:
     """% acumulada de readmissões encontradas por % de altas com follow-up (0 a 100),
     para o modelo, a regra (internamentos anteriores, 20 sorteios nos empates) e o acaso."""
@@ -387,8 +522,9 @@ def gains_table(y, scores, number_inpatient) -> pd.DataFrame:
     m = gains_curve(y, scores)
     # Regra com o mesmo método e sorteios de capacity_numbers(), para os números baterem com o deck.
     r = [100 * rank_baseline_at_k(y, number_inpatient, k)["recall_mean"] for k in m["k"]]
-    out = pd.DataFrame({"k": np.r_[0, 100 * m["k"].to_numpy()], "modelo": np.r_[0, m["pct_readm_apanhadas"]],
-                        "regra": np.r_[0, r]})
+    out = pd.DataFrame(
+        {"k": np.r_[0, 100 * m["k"].to_numpy()], "modelo": np.r_[0, m["pct_readm_apanhadas"]], "regra": np.r_[0, r]}
+    )
     out["acaso"] = out["k"]
     return out.round({"k": 0}).set_index("k")
 
@@ -405,8 +541,9 @@ def _gain_until(g: pd.DataFrame, step: int = 10) -> int:
     return last
 
 
-def fig_ganhos(g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | None = None,
-               pos: int | None = None, figsize=None):
+def fig_ganhos(
+    g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | None = None, pos: int | None = None, figsize=None
+):
     """Curva de ganhos acumulados (IBCS): modelo a verde, regra a preto, acaso a
     tracejado; faixa cinzenta onde cada follow-up extra rende mais do que ao acaso;
     linha vertical na capacidade (D24) com os três valores escritos.
@@ -414,27 +551,65 @@ def fig_ganhos(g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | No
     cut = _gain_until(g)
     fig, ax = plt.subplots(figsize=figsize or ((10, 6.4) if page else (9.2, 4.6)))
     ax.axvspan(0, cut, color=BAND, zorder=0)
-    ax.text(cut / 2, 97, "Cada follow-up extra rende\nmais do que ao acaso", ha="center", va="top",
-            fontsize=FONT - 2, fontweight="bold", color=MID)
+    ax.text(
+        cut / 2,
+        97,
+        "Cada follow-up extra rende\nmais do que ao acaso",
+        ha="center",
+        va="top",
+        fontsize=FONT - 2,
+        fontweight="bold",
+        color=MID,
+    )
     ax.plot(g.index, g["acaso"], color="#9A9A9A", ls="--", lw=1.6, zorder=2)
     ax.plot(g.index, g["regra"], color=INK, lw=2, zorder=3)
     ax.plot(g.index, g["modelo"], color=GREEN, lw=3.2, zorder=4)
     # Rótulos diretos junto às linhas, onde estão afastadas (no fim as três juntam-se em 100%).
-    for col, label, color, xk, dy, va in [("modelo", "Modelo v1", GREEN_TEXT, 55, 10, "bottom"),
-                                          ("regra", "Regra simples", INK, 70, -10, "top"),
-                                          ("acaso", "Ao acaso", "#7A7A7A", 85, -10, "top")]:
-        ax.annotate(label, (xk, g.loc[xk, col]), xytext=(0, dy), textcoords="offset points", ha="center", va=va,
-                    fontsize=FONT - 1, color=color, fontweight="bold" if col == "modelo" else None)
+    for col, label, color, xk, dy, va in [
+        ("modelo", "Modelo v1", GREEN_TEXT, 55, 10, "bottom"),
+        ("regra", "Regra simples", INK, 70, -10, "top"),
+        ("acaso", "Ao acaso", "#7A7A7A", 85, -10, "top"),
+    ]:
+        ax.annotate(
+            label,
+            (xk, g.loc[xk, col]),
+            xytext=(0, dy),
+            textcoords="offset points",
+            ha="center",
+            va=va,
+            fontsize=FONT - 1,
+            color=color,
+            fontweight="bold" if col == "modelo" else None,
+        )
     # Capacidade escolhida (D24): os três valores escritos junto à linha.
     ax.axvline(k_cap, color=MID, lw=1, ls=":", zorder=1)
-    for col, color, dx, ha, fw in [("modelo", GREEN_TEXT, -6, "right", "bold"), ("regra", INK, 6, "left", None),
-                                    ("acaso", "#7A7A7A", 6, "left", None)]:
+    for col, color, dx, ha, fw in [
+        ("modelo", GREEN_TEXT, -6, "right", "bold"),
+        ("regra", INK, 6, "left", None),
+        ("acaso", "#7A7A7A", 6, "left", None),
+    ]:
         yv = g.loc[k_cap, col]
         ax.plot(k_cap, yv, "o", ms=6, color=GREEN if col == "modelo" else color, zorder=5)
-        ax.annotate(f"{num(yv, 0)}%", (k_cap, yv), xytext=(dx, 7 if col == "modelo" else -9),
-                    textcoords="offset points", ha=ha, va="center", fontsize=FONT - 1, color=color, fontweight=fw)
-    ax.annotate(f"Capacidade: {k_cap}% das altas (D24)", (k_cap, 2), xytext=(4, 0), textcoords="offset points",
-                fontsize=FONT - 3, color=MID, va="bottom")
+        ax.annotate(
+            f"{num(yv, 0)}%",
+            (k_cap, yv),
+            xytext=(dx, 7 if col == "modelo" else -9),
+            textcoords="offset points",
+            ha=ha,
+            va="center",
+            fontsize=FONT - 1,
+            color=color,
+            fontweight=fw,
+        )
+    ax.annotate(
+        f"Capacidade: {k_cap}% das altas (D24)",
+        (k_cap, 2),
+        xytext=(4, 0),
+        textcoords="offset points",
+        fontsize=FONT - 3,
+        color=MID,
+        va="bottom",
+    )
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.set_xticks(range(0, 101, 10), [f"{x}%" for x in range(0, 101, 10)])
@@ -448,16 +623,19 @@ def fig_ganhos(g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | No
     if page:
         m, r = g.loc[k_cap, "modelo"], g.loc[k_cap, "regra"]
         report_page(
-            fig, f"Com follow-up a {k_cap}% das altas, o modelo encontra {num(m, 0)}% das readmissões (regra "
+            fig,
+            f"Com follow-up a {k_cap}% das altas, o modelo encontra {num(m, 0)}% das readmissões (regra "
             f"simples: {num(r, 0)}%; acaso: {k_cap}%); depois dos {cut}%, cada follow-up extra rende menos do que "
             "ao acaso",
             f"Rede hospitalar, altas de treino elegíveis para follow-up (n = {num(n)}; {num(pos)} readmissões; D21)",
-            "Readmissões < 30 dias encontradas", "em % acumulada, por % de altas com follow-up",
+            "Readmissões < 30 dias encontradas",
+            "em % acumulada, por % de altas com follow-up",
             "Validação cruzada, 5 folds por doente (dados de 1999–2008)",
             "Fonte: Diabetes 130-US hospitals (UCI), 1999–2008. Faixa cinzenta: cada 10% de altas com follow-up a "
             "mais encontra mais de 10% das readmissões (mais do que ao acaso). Regra simples: ordenar pelos "
             "internamentos no ano anterior, empates ao acaso (média de 20 sorteios). Altas elegíveis: altas para a "
-            "comunidade sem outro acompanhamento (D21). Previsões out-of-fold do treino; a confirmar no teste (T3.6).")
+            "comunidade sem outro acompanhamento (D21). Previsões out-of-fold do treino; a confirmar no teste (T3.6).",
+        )
         return fig
     else:
         fig.subplots_adjust(right=0.97, top=0.97)
@@ -474,24 +652,47 @@ def gains_page(y, scores, number_inpatient, k_cap: int = 20):
 
 # --- Números da demo -----------------------------------------------------------------------------
 
+
 def demo_cases() -> dict:
     """As altas da demo, calculadas com o modelo gravado e as funções da app."""
     from src.app import capacity_threshold, predict_risk
 
     bundle = load_model(MODEL_DIR)
-    a = dict(age_band=7, time_in_hospital=6, num_medications=20, number_diagnoses=9, number_inpatient=3,
-             number_emergency=1, number_outpatient=0, discharge_disposition_id_desc="Discharged to home")
-    cases = {"A_casa": a,
-             "A_reabilitacao": {**a, "discharge_disposition_id_desc":
-                                "Discharged/transferred to another rehab fac including rehab units of a hospital ."},
-             "B_casa": dict(age_band=5, time_in_hospital=3, number_inpatient=0, number_emergency=0,
-                            number_outpatient=0, discharge_disposition_id_desc="Discharged to home")}
+    a = dict(
+        age_band=7,
+        time_in_hospital=6,
+        num_medications=20,
+        number_diagnoses=9,
+        number_inpatient=3,
+        number_emergency=1,
+        number_outpatient=0,
+        discharge_disposition_id_desc="Discharged to home",
+    )
+    cases = {
+        "A_casa": a,
+        "A_reabilitacao": {
+            **a,
+            "discharge_disposition_id_desc": "Discharged/transferred to another rehab fac including rehab units of a hospital .",
+        },
+        "B_casa": dict(
+            age_band=5,
+            time_in_hospital=3,
+            number_inpatient=0,
+            number_emergency=0,
+            number_outpatient=0,
+            discharge_disposition_id_desc="Discharged to home",
+        ),
+    }
     out = {}
     for name, v in cases.items():
         r = predict_risk(bundle, **v)
-        out[name] = {"risco": r["risk"], "top_pct": r["top_pct"], "elegivel": r["eligible"],
-                     "follow_up_app": r["follow_up"],
-                     "follow_up_20": bool(r["eligible"] and r["risk"] >= capacity_threshold(bundle, 20))}
+        out[name] = {
+            "risco": r["risk"],
+            "top_pct": r["top_pct"],
+            "elegivel": r["eligible"],
+            "follow_up_app": r["follow_up"],
+            "follow_up_20": bool(r["eligible"] and r["risk"] >= capacity_threshold(bundle, 20)),
+        }
     return out
 
 
@@ -528,8 +729,12 @@ def main():
     save(fig_modelo_vs_regra(numbers["capacidade_20"]), "03_modelo_vs_regra_k20")
     numbers["confusao"] = train_confusions(tr)
     save(fig_confusao(numbers["confusao"]["validacao_k20"]), "04_matriz_confusao_k20")
-    titles = {"validacao_k20": "20% · validação (out-of-fold)", "treino_k20": "20% · treino",
-              "validacao_k10": "10% · validação (out-of-fold)", "treino_k10": "10% · treino"}
+    titles = {
+        "validacao_k20": "20% · validação (out-of-fold)",
+        "treino_k20": "20% · treino",
+        "validacao_k10": "10% · validação (out-of-fold)",
+        "treino_k10": "10% · treino",
+    }
     for key, ttl in titles.items():
         save(fig_confusao_anexo(numbers["confusao"][key], ttl), f"A_matriz_{key}")
     e = tr[tr["eligible"]]
@@ -537,8 +742,10 @@ def main():
     fig, numbers["calibracao"] = fig_calibracao(cal)
     save(fig, "05_calibracao_decis")
     tab, total = fairness_table(tr)
-    numbers["equidade"] = {"recall_total": total, **{g: {c: float(tab.loc[g, c]) for c in
-                           ("n", "positive_rate", "flagged_rate", "recall")} for g in tab.index}}
+    numbers["equidade"] = {
+        "recall_total": total,
+        **{g: {c: float(tab.loc[g, c]) for c in ("n", "positive_rate", "flagged_rate", "recall")} for g in tab.index},
+    }
     save(fig_equidade(tab, total), "06_equidade_recall_k20")
     fig, numbers["modelos_pr_auc"] = fig_modelos(pd.read_csv("reports/experiments.csv"))
     save(fig, "A_modelos_pr_auc")
@@ -552,8 +759,11 @@ def main():
     rate = tr.groupby(np.minimum(tr["number_inpatient"], 6))["target"].mean()
     numbers["internamentos"] = {"taxa_0": float(rate.loc[0]), "taxa_6_ou_mais": float(rate.loc[6])}
     from sklearn.metrics import average_precision_score
-    numbers["pr_auc_elegiveis"] = {"modelo": float(average_precision_score(e["target"], e["oof"])),
-                                   "regra": float(average_precision_score(e["target"], e["number_inpatient"]))}
+
+    numbers["pr_auc_elegiveis"] = {
+        "modelo": float(average_precision_score(e["target"], e["oof"])),
+        "regra": float(average_precision_score(e["target"], e["number_inpatient"])),
+    }
     NUMBERS.write_text(json.dumps(numbers, indent=1, ensure_ascii=False, default=float), encoding="utf-8")
     print(f"Gráficos em {OUT}/ e números em {NUMBERS}")
 

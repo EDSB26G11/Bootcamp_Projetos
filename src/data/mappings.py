@@ -62,10 +62,7 @@ def parse_ids_mapping_lines(lines: list[str]) -> dict[str, pd.DataFrame]:
         mappings[header] = df
 
     if set(mappings) != set(EXPECTED_MAPPINGS) or len(blocks) != len(EXPECTED_MAPPINGS):
-        raise ValueError(
-            f"IDS_mapping inesperado: tabelas {list(mappings)} "
-            f"(esperado {list(EXPECTED_MAPPINGS)})"
-        )
+        raise ValueError(f"IDS_mapping inesperado: tabelas {list(mappings)} " f"(esperado {list(EXPECTED_MAPPINGS)})")
     return mappings
 
 

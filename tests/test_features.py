@@ -13,8 +13,15 @@ from src.features.build import (
 
 
 def _row(**kw):
-    base = {"age": "[70-80)", "diag_1": "428", "diag_2": "250.43", "diag_3": None,
-            "number_outpatient": 1, "number_emergency": 0, "number_inpatient": 2}
+    base = {
+        "age": "[70-80)",
+        "diag_1": "428",
+        "diag_2": "250.43",
+        "diag_3": None,
+        "number_outpatient": 1,
+        "number_emergency": 0,
+        "number_inpatient": 2,
+    }
     base.update({m: "No" for m in MED_COLS})
     base.update(kw)
     return base
@@ -23,12 +30,19 @@ def _row(**kw):
 def test_icd9_group_follows_strack():
     codes = pd.Series(["428", "786.5", "250.01", "820", "V57", "E812", "008", None], dtype="string")
     assert icd9_group(codes).tolist() == [
-        "Circulatory", "Respiratory", "Diabetes", "Injury", "Other", "Other", "Other", "Missing"]
+        "Circulatory",
+        "Respiratory",
+        "Diabetes",
+        "Injury",
+        "Other",
+        "Other",
+        "Other",
+        "Missing",
+    ]
 
 
 def test_build_features_row_level():
-    df = pd.DataFrame([_row(insulin="Up", metformin="Steady", glipizide="Down"),
-                       _row(age="[0-10)", diag_2="250.01")])
+    df = pd.DataFrame([_row(insulin="Up", metformin="Steady", glipizide="Down"), _row(age="[0-10)", diag_2="250.01")])
     out = build_features(df)
     assert out["age_band"].tolist() == [7, 0]
     assert out["diag_2_group"].tolist() == ["Diabetes", "Diabetes"]
@@ -46,11 +60,19 @@ def test_features_and_dropped_do_not_overlap():
 
 def test_model_frame_fills_missing_categories():
     df = pd.DataFrame([_row()])
-    for c in ["race", "gender", "payer_code", "medical_specialty", "A1Cresult", "max_glu_serum",
-              "admission_type_id_desc", "discharge_disposition_id_desc", "admission_source_id_desc"]:
+    for c in [
+        "race",
+        "gender",
+        "payer_code",
+        "medical_specialty",
+        "A1Cresult",
+        "max_glu_serum",
+        "admission_type_id_desc",
+        "discharge_disposition_id_desc",
+        "admission_source_id_desc",
+    ]:
         df[c] = None
-    for c in ["time_in_hospital", "num_lab_procedures", "num_procedures", "num_medications",
-              "number_diagnoses"]:
+    for c in ["time_in_hospital", "num_lab_procedures", "num_procedures", "num_medications", "number_diagnoses"]:
         df[c] = 1
     x = model_frame(df)
     assert list(x.columns) == FEATURES
@@ -58,7 +80,11 @@ def test_model_frame_fills_missing_categories():
 
 
 def test_incomplete_record():
-    df = pd.DataFrame({"admission_type_id_desc": ["Emergency", "Desconhecido", "Urgent"],
-                       "discharge_disposition_id_desc": ["Home", "Home", "Home"],
-                       "admission_source_id_desc": ["Referral", "Referral", "Desconhecido"]})
+    df = pd.DataFrame(
+        {
+            "admission_type_id_desc": ["Emergency", "Desconhecido", "Urgent"],
+            "discharge_disposition_id_desc": ["Home", "Home", "Home"],
+            "admission_source_id_desc": ["Referral", "Referral", "Desconhecido"],
+        }
+    )
     assert incomplete_record(df).tolist() == [0, 1, 1]

@@ -65,12 +65,27 @@ def _log_row(name: str, dataset: str, folds: pd.DataFrame, note: str, params: st
     """Linha no formato da W6: date, model, dataset, métricas, note."""
     metrics = {c: round(folds[c].mean(), 4) for c in folds.columns}
     stds = {f"{c}_std": round(folds[c].std(), 4) for c in folds.columns}
-    return {"date": datetime.now().isoformat(timespec="seconds"), "model": name, "dataset": dataset,
-            **metrics, **stds, "note": note, "params": params}
+    return {
+        "date": datetime.now().isoformat(timespec="seconds"),
+        "model": name,
+        "dataset": dataset,
+        **metrics,
+        **stds,
+        "note": note,
+        "params": params,
+    }
 
 
-def run_cv(name: str, model, data: ModelData, notes: str = "", log: bool = True,
-           path: str = EXPERIMENTS, history: str | None = HISTORY, return_oof: bool = False):
+def run_cv(
+    name: str,
+    model,
+    data: ModelData,
+    notes: str = "",
+    log: bool = True,
+    path: str = EXPERIMENTS,
+    history: str | None = HISTORY,
+    return_oof: bool = False,
+):
     """Avalia o modelo nos 5 folds de D13 e regista a corrida (treino e
     validação) no registo atual e no histórico. Devolve as métricas de
     validação por fold e, com return_oof, também as previsões OOF."""
@@ -112,10 +127,11 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
     oof_e = oof[eligible]  # a lista de prioridades só tem altas elegíveis (D21)
     config = {
         "features": list(X.columns),
-        "defaults": {c: _jsonable(X[c].median() if pd.api.types.is_numeric_dtype(X[c]) else X[c].mode().iat[0])
-                     for c in X.columns},
-        "choices": {c: sorted(X[c].unique().tolist()) for c in X.columns
-                    if not pd.api.types.is_numeric_dtype(X[c])},
+        "defaults": {
+            c: _jsonable(X[c].median() if pd.api.types.is_numeric_dtype(X[c]) else X[c].mode().iat[0])
+            for c in X.columns
+        },
+        "choices": {c: sorted(X[c].unique().tolist()) for c in X.columns if not pd.api.types.is_numeric_dtype(X[c])},
         "no_follow_up_discharge": sorted(NO_FOLLOW_UP_DISCHARGE.values()),
         "threshold_k10": threshold_for_capacity(oof_e, 0.10),
         "threshold_k20": threshold_for_capacity(oof_e, 0.20),
@@ -125,8 +141,11 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
         # referência para o risco estimado na app: taxa observada de readmissão <30 dias
         "base_rate_eligible": float(np.asarray(data.y_train)[eligible].mean()),
         "base_rate_all": float(np.asarray(data.y_train).mean()),
-        "versions": {"python": platform.python_version(), "scikit-learn": sklearn.__version__,
-                     "skops": skops.__version__},
+        "versions": {
+            "python": platform.python_version(),
+            "scikit-learn": sklearn.__version__,
+            "skops": skops.__version__,
+        },
         "seed": SEED,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
         **meta,
@@ -139,8 +158,10 @@ def save_model(model, data: ModelData, oof_scores, path: str = MODEL_DIR, **meta
     if MODEL_CARD.exists():
         card.write_text(MODEL_CARD.read_text(encoding="utf-8"), encoding="utf-8")
     elif not card.exists():
-        card.write_text("# Model card: readmissão a 30 dias (diabetes)\n\n"
-                        "_A preencher: ver docs/model_card.md._\n", encoding="utf-8")
+        card.write_text(
+            "# Model card: readmissão a 30 dias (diabetes)\n\n" "_A preencher: ver docs/model_card.md._\n",
+            encoding="utf-8",
+        )
     return path
 
 

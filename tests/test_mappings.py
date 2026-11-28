@@ -47,9 +47,7 @@ def test_wrong_number_of_tables_raises():
 
 def test_decode_ids_adds_desc_columns_and_keeps_codes():
     mappings = parse_ids_mapping_lines(SAMPLE)
-    df = pd.DataFrame(
-        {"admission_type_id": [1, 6], "discharge_disposition_id": [1, 1], "admission_source_id": [7, 7]}
-    )
+    df = pd.DataFrame({"admission_type_id": [1, 6], "discharge_disposition_id": [1, 1], "admission_source_id": [7, 7]})
     out = decode_ids(df, mappings)
     assert out["admission_type_id_desc"].tolist() == ["Emergency", "NULL"]
     assert out["admission_type_id"].tolist() == [1, 6]
@@ -64,11 +62,16 @@ def test_real_file():
 
 
 def test_group_unknown_ids_only_changes_desc():
-    df = pd.DataFrame({
-        "admission_type_id": [1, 6], "admission_type_id_desc": ["Emergency", "NULL"],
-        "discharge_disposition_id": [18, 1], "discharge_disposition_id_desc": ["NULL", "Discharged to home"],
-        "admission_source_id": [20, 7], "admission_source_id_desc": ["Not Mapped", "Emergency Room"],
-    })
+    df = pd.DataFrame(
+        {
+            "admission_type_id": [1, 6],
+            "admission_type_id_desc": ["Emergency", "NULL"],
+            "discharge_disposition_id": [18, 1],
+            "discharge_disposition_id_desc": ["NULL", "Discharged to home"],
+            "admission_source_id": [20, 7],
+            "admission_source_id_desc": ["Not Mapped", "Emergency Room"],
+        }
+    )
     out = group_unknown_ids(df)
     assert out["admission_type_id_desc"].tolist() == ["Emergency", "Desconhecido"]
     assert out["discharge_disposition_id_desc"].tolist() == ["Desconhecido", "Discharged to home"]

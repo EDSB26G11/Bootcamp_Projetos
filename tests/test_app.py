@@ -4,8 +4,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.app import (CAPACITY, INPUTS, capacity_threshold, chart_notes, describe, is_eligible, make_record, message,
-                     predict_risk, result_html, recommendation, risk_percentile)
+from src.app import (
+    CAPACITY,
+    INPUTS,
+    capacity_threshold,
+    chart_notes,
+    describe,
+    is_eligible,
+    make_record,
+    message,
+    predict_risk,
+    result_html,
+    recommendation,
+    risk_percentile,
+)
 from src.features.build import CATEGORICAL_FEATURES, FEATURES
 from src.models.baselines import candidate_models
 from src.models.evaluate import predict_scores
@@ -27,8 +39,11 @@ def _data():
 @pytest.fixture(scope="module")
 def saved(tmp_path_factory):
     data = _data()
-    model = candidate_models()["hist_gradient_boosting"].set_params(
-        histgradientboostingclassifier__max_iter=20).fit(data.X_train, data.y_train)
+    model = (
+        candidate_models()["hist_gradient_boosting"]
+        .set_params(histgradientboostingclassifier__max_iter=20)
+        .fit(data.X_train, data.y_train)
+    )
     oof = predict_scores(model, data.X_train)  # no teste, chega um score por linha
     path = save_model(model, data, oof, path=tmp_path_factory.mktemp("v1"))
     return data, model, path
@@ -87,8 +102,9 @@ def test_app_not_eligible_never_gets_follow_up(saved):
     assert bundle["no_follow_up_discharge"] and bundle["n_eligible"] <= bundle["n_train"]
     dest = bundle["no_follow_up_discharge"][0]
     assert not is_eligible(bundle, discharge_disposition_id_desc=dest)
-    out = predict_risk(bundle, discharge_disposition_id_desc=dest, number_inpatient=4, number_emergency=0,
-                       number_outpatient=0)
+    out = predict_risk(
+        bundle, discharge_disposition_id_desc=dest, number_inpatient=4, number_emergency=0, number_outpatient=0
+    )
     assert not out["eligible"] and out["high_risk"] and not out["follow_up"]
     assert 0 <= out["percentile"] <= 100
     for text in (message(out), describe(out)):
@@ -134,15 +150,24 @@ def test_capacity_threshold_matches_saved_cuts(saved):
     assert bundle["threshold_k20"] >= capacity_threshold(bundle, 30)
 
 
-@pytest.mark.parametrize("eligible, high, rec, why", [
-    (True, True, "Follow-up", "Risco alto ou Destino sem cuidados médicos"),
-    (True, False, "Sem follow-up", "Risco baixo ou Destino sem cuidados médicos"),
-    (False, True, "Sem follow-up", "Risco alto ou Destino com cuidados médicos"),
-    (False, False, "Sem follow-up", "Risco baixo ou Destino com cuidados médicos"),
-])
+@pytest.mark.parametrize(
+    "eligible, high, rec, why",
+    [
+        (True, True, "Follow-up", "Risco alto ou Destino sem cuidados médicos"),
+        (True, False, "Sem follow-up", "Risco baixo ou Destino sem cuidados médicos"),
+        (False, True, "Sem follow-up", "Risco alto ou Destino com cuidados médicos"),
+        (False, False, "Sem follow-up", "Risco baixo ou Destino com cuidados médicos"),
+    ],
+)
 def test_recommendation_and_reason(eligible, high, rec, why):
-    out = {"eligible": eligible, "high_risk": high, "follow_up": eligible and high, "risk": 0.1,
-           "base_rate": 0.096, "percentile": 80.0}
+    out = {
+        "eligible": eligible,
+        "high_risk": high,
+        "follow_up": eligible and high,
+        "risk": 0.1,
+        "base_rate": 0.096,
+        "percentile": 80.0,
+    }
     assert recommendation(out) == (rec, why)
     html = message(out)
     assert f'<span class="rec-value">{rec}</span>' in html and why in html
@@ -150,12 +175,11 @@ def test_recommendation_and_reason(eligible, high, rec, why):
 
 def test_result_html_matches_the_numbers():
     """O quadro mostra o mesmo número nos 100 pontos, no texto e na posição."""
-    out = {"eligible": True, "high_risk": True, "follow_up": True, "risk": 0.19, "base_rate": 0.096,
-           "percentile": 92.7}
+    out = {"eligible": True, "high_risk": True, "follow_up": True, "risk": 0.19, "base_rate": 0.096, "percentile": 92.7}
     html = result_html(out)
     assert html.count('class="dot on"') == 19 and html.count('class="dot') == 100
     assert "19 em cada 100" in html and "19%" in html and "top 8%" in html and "Acima da média" in html
-    assert 'rec-box rec-yes' in html
+    assert "rec-box rec-yes" in html
     low = {**out, "high_risk": False, "follow_up": False, "risk": 0.004, "percentile": 5.0}
     html = result_html(low)
-    assert html.count('class="dot on"') == 0 and "Menos de 1 em cada 100" in html and 'rec-box rec-no' in html
+    assert html.count('class="dot on"') == 0 and "Menos de 1 em cada 100" in html and "rec-box rec-no" in html
