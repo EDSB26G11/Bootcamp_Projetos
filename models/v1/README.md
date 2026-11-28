@@ -15,7 +15,7 @@ para `models/v1/README.md`.
 - **Para quê:** no momento da alta hospitalar, estimar o risco de o doente ser readmitido em menos de 30 dias
   e ordenar as altas elegíveis por esse risco, para a equipa de follow-up contactar primeiro as de maior risco,
   até ao limite da sua capacidade (10% ou 20% das altas elegíveis).
-- **Para quem:** a Diretora de Care Quality e a equipa de follow-up de uma rede hospitalar.
+- **Para quem:** a Direção de Care Quality e a equipa de follow-up de uma rede hospitalar.
 - **Como:** o modelo propõe; **uma pessoa revê cada caso** e decide o contacto. A app (`src/app.py`) mostra o
   risco estimado, a posição da alta face às outras e a ação para cada capacidade.
 - **Altas elegíveis (D21):** altas para a comunidade sem acompanhamento. As altas para outro hospital ou

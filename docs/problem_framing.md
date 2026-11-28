@@ -19,7 +19,7 @@ Tem duas partes, e cada uma tem a sua avaliação (D22, 7/11):
    voltam. Avalia-se com a **calibração** (risco previsto contra observado por
    decis, Brier, log loss).
 2. **Que prioridade.** As altas elegíveis (D21) ordenam-se pelo risco e a
-   equipa contacta as primeiras até esgotar a capacidade. Avalia-se com a
+   equipa dá follow-up às primeiras até esgotar a capacidade. Avalia-se com a
    **ordenação**: PR-AUC e recall e precisão no top k%.
 
 A versão anterior (6/11) tratava só a segunda parte: a app mostrava a
@@ -29,13 +29,13 @@ posição, não o risco.
 
 | Pergunta | Resposta |
 |---|---|
-| **Quem decide** | O Director of Care Quality da rede hospitalar (guia do projeto). Quem executa é uma equipa de follow-up com capacidade limitada. |
+| **Quem decide** | A Direção de Care Quality da rede hospitalar ("Director of Care Quality" no guia do projeto). Quem executa é uma equipa de follow-up com capacidade limitada. |
 | **Que decisão** | No momento da alta, que doentes recebem follow-up adicional e por que ordem. |
 | **Quem pode entrar na lista** | Só quem volta para a comunidade sem acompanhamento (D21). Saem as altas em que o doente continua internado, vai para outro hospital ou instituição (cuidados continuados, reabilitação, longa duração, psiquiatria) ou já sai com apoio domiciliário ou cuidados paliativos. Sem esta regra, 59% da lista a 10% iria para estes doentes. O modelo estima o risco de todos; a lista só ordena os elegíveis (52 436 das 80 041 altas de treino, 65,5%). |
-| **Ação** | Contactar (telefone, consulta precoce, revisão da medicação) as altas com maior risco de readmissão em menos de 30 dias, até esgotar a capacidade. |
+| **Ação** | Dar follow-up (telefone, consulta precoce, revisão da medicação) às altas com maior risco de readmissão em menos de 30 dias, até esgotar a capacidade. |
 | **Baseline atual** | Não há um modelo em uso. A comparação justa é com uma regra simples que um hospital já podia aplicar: ordenar as altas pelo número de internamentos no ano anterior (`number_inpatient`). A ordem ao acaso é o mínimo. |
-| **Restrição** | Capacidade: a equipa só consegue contactar uma fração das altas elegíveis. Trabalhamos com **10% e 20%**; a escolha final é da equipa de negócio (decisão em aberto no roadmap). |
-| **Custo de errar** | Falso negativo: uma readmissão que não recebeu follow-up. Falso positivo: um contacto gasto num doente que não seria readmitido. Não temos custos reais, por isso não se inventa uma análise custo-benefício: a capacidade fixa quantos contactos há, e o modelo decide a quem. |
+| **Restrição** | Capacidade: a equipa só consegue dar follow-up a uma fração das altas elegíveis. Trabalhamos com **10% e 20%**; a escolha final é da equipa de negócio (decisão em aberto no roadmap). |
+| **Custo de errar** | Falso negativo: uma readmissão que não recebeu follow-up. Falso positivo: um follow-up gasto num doente que não seria readmitido. Não temos custos reais, por isso não se inventa uma análise custo-benefício: a capacidade fixa quantos follow-ups há, e o modelo decide a quem. |
 
 ## 2. Limites (a repetir no relatório, no deck e na app)
 
@@ -47,7 +47,7 @@ posição, não o risco.
   contam como negativos (D6).
 - **Dados de 1999–2008, sem datas.** Não há períodos para ver se o modelo
   continua certo ao longo do tempo; a validação é feita por doente (D13).
-- **Revisão humana.** O modelo ordena; uma pessoa decide cada contacto.
+- **Revisão humana.** O modelo ordena; uma pessoa decide cada follow-up.
 - **O risco vale para estes dados.** O risco estimado está calibrado para os
   hospitais e o período do dataset (EUA, 1999–2008). Noutro hospital ou noutro
   período teria de ser verificado outra vez.
@@ -71,7 +71,7 @@ confirma uma vez, no teste, na avaliação final (T3.6).
 
 A versão do roadmap falava em "doentes sinalizados por dia". O dataset não tem
 datas, por isso não é possível medir por dia. A capacidade passa a ser uma
-fração das altas; para traduzir em contactos por dia, basta multiplicar pelo
+fração das altas; para traduzir em follow-ups por dia, basta multiplicar pelo
 número de altas diárias de cada hospital, que é um dado da operação e não
 do modelo.
 
@@ -89,7 +89,7 @@ clara a 20% e pequena a 10%. Isto pesa na escolha da capacidade e nas metas
 - **Accuracy.** Prever sempre "não readmitido" dá 88,7%.
 - **Um AUC alto por si só.** Na literatura sobre este dataset, os melhores
   modelos ficam em ROC-AUC ≈ 0,65–0,70. O que interessa é quantas readmissões
-  a equipa encontra com os contactos que tem.
+  a equipa encontra com os follow-ups que tem.
 
 ## 4. Onde está a evidência
 

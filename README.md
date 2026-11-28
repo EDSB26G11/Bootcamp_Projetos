@@ -14,9 +14,9 @@ para estabelecer prioridades no acompanhamento adicional? Tem duas partes:
 qual o risco (avaliado pela calibração) e que prioridade (avaliada pela
 ordenação no topo da lista) (D22).
 
-**Para quem.** Para uma equipa de follow-up que só consegue contactar uma parte
+**Para quem.** Para uma equipa de follow-up que só chega a uma parte
 das altas (por exemplo, 10% ou 20%). O modelo estima o risco de cada alta e
-ordena as altas elegíveis, para os contactos chegarem primeiro a quem mais
+ordena as altas elegíveis, para o follow-up chegar primeiro a quem mais
 precisa. Ficam fora da lista as altas que já têm acompanhamento à saída
 (outra instituição, internamento, apoio domiciliário, paliativos; D21).
 
@@ -34,19 +34,19 @@ Positivos: 11,34%.
 - O split é feito por doente: o mesmo doente nunca aparece no treino e na validação (D13).
 - A métrica principal é a PR-AUC.
 - A métrica de negócio é o recall@10% / @20%: a fração das readmissões apanhada
-  se a equipa contactar os 10% / 20% de altas elegíveis com maior risco.
+  se a equipa der follow-up aos 10% / 20% de altas elegíveis com maior risco.
 - A calibração (risco previsto contra observado, por decis) confirma que o
   risco estimado bate certo com as readmissões observadas.
 
 ## Abstract
 
-Uma equipa de follow-up só consegue contactar uma parte das altas hospitalares. Com o dataset
+Uma equipa de follow-up só chega a uma parte das altas hospitalares. Com o dataset
 Diabetes 130-US hospitals (1999–2008; 100 052 encontros elegíveis, 70 412 doentes, 11,34% readmitidos em
 menos de 30 dias), estimamos no momento da alta o risco de readmissão a 30 dias e usamo-lo para ordenar as
 altas que podem receber acompanhamento adicional. O split é feito por doente, para o mesmo doente nunca estar
 no treino e na validação. O modelo escolhido, um HistGradientBoosting com 34 features conhecidas na alta,
 atinge PR-AUC 0,234 ± 0,008 na validação cruzada (ordem ao acaso 0,113; regressão logística 0,210) e um
-risco bem calibrado (previsto e observado a menos de 1 pp em todos os decis). Contactando os 20% de altas
+risco bem calibrado (previsto e observado a menos de 1 pp em todos os decis). Com follow-up aos 20% de altas
 elegíveis com maior risco, encontra 40,1% das readmissões, contra 37,6% com a regra simples de ordenar por
 internamentos anteriores; a 10%, a vantagem é pequena (25,0% contra 24,0%). Um modelo pré-treinado do
 Hugging Face (Kumo Tabular) empatou com o nosso, com custos maiores. O modelo prioriza, não prova que o

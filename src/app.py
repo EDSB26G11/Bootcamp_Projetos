@@ -305,7 +305,7 @@ def chart_notes(bundle: dict) -> str:
 
 **Pressupostos principais**
 
-- **Capacidade.** A equipa contacta {CAPACITY}% das altas elegíveis, começando pelas de maior risco. O corte
+- **Capacidade.** A equipa faz follow-up a {CAPACITY}% das altas elegíveis, começando pelas de maior risco. O corte
   vem das previsões out-of-fold do treino.{cuts_txt}
 - **Destino sem / com cuidados médicos.** Só as altas para casa sem acompanhamento podem receber
   follow-up{elig}. As restantes já têm acompanhamento à saída (outro hospital ou instituição, apoio domiciliário,
@@ -316,7 +316,7 @@ def chart_notes(bundle: dict) -> str:
   de 1 pp em todos os decis. O dataset é dos EUA, de 1999 a 2008; noutro hospital ou noutro período, isto tem
   de ser verificado outra vez.
 - **Campos não mostrados.** Ficam com o valor mais comum no treino.
-- **Não é causal.** O modelo não estima o efeito do follow-up. Uma pessoa revê cada caso antes do contacto."""
+- **Não é causal.** O modelo não estima o efeito do follow-up. Uma pessoa revê cada caso antes do follow-up."""
 
 
 CSS = f"""

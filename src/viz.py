@@ -145,7 +145,7 @@ def model_vs_baseline(table, k, n_altas, footnote):
     axd.set_title("Δ face a internamentos anteriores", color=NOTE, fontsize=9, loc="left")
     ax.set_xlim(0, lim * 1.15)
     model_name = vals.index[0]
-    msg = (f"Contactando as {num(n_altas * k)} altas de maior risco ({pct(k, 0)} das {num(n_altas)} elegíveis), "
+    msg = (f"Com follow-up às {num(n_altas * k)} altas de maior risco ({pct(k, 0)} das {num(n_altas)} elegíveis), "
            f"o modelo encontraria {num(vals[model_name])} readmissões em menos de 30 dias, "
            f"{num(delta[model_name])} mais do que ordenando por internamentos anteriores")
     return report_page(

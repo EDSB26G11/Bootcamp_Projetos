@@ -94,9 +94,9 @@ As regras com `number_inpatient` foram recalculadas a 6/11 com o
 `average_precision` do scikit-learn e empates desfeitos ao acaso; a versão
 anterior desta tabela (0,150 e 0,183) usava outro método nos empates.
 
-Como ler: com a regressão logística, chamar os 10% de altas com maior risco
+Como ler: com a regressão logística, dar follow-up aos 10% de altas com maior risco
 apanha 23% das readmissões em menos de 30 dias. Um em cada quatro doentes
-contactados seria de facto readmitido, contra um em cada nove ao acaso.
+com follow-up seria de facto readmitido, contra um em cada nove ao acaso.
 
 **Expectativa realista.** Na literatura sobre este dataset, os melhores
 modelos ficam tipicamente em ROC-AUC ≈ 0,65–0,70. O ganho do gradient

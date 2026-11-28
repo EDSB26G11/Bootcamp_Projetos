@@ -1,0 +1,285 @@
+{
+ "populacao": {
+  "n_train": 80041,
+  "taxa_train": 0.11339188665808773
+ },
+ "destinos": {
+  "k": 0.2,
+  "n_top": 16009,
+  "pct_fora_da_lista": 0.5739896308326566,
+  "pct_casa": 0.36766818664501216,
+  "pct_outros": 0.08870010619026797,
+  "partes": {
+   "Casa (sem apoio)": 0.36766818664501216,
+   "Lar com enfermagem (SNF)": 0.2253732275594978,
+   "Apoio domiciliário": 0.15510025610594042,
+   "Reabilitação": 0.08969954400649635,
+   "Outro hospital": 0.03879068024236367,
+   "Outra instituição": 0.03466799925042164,
+   "Outros, ficam na lista": 0.05834218252233119,
+   "Outros, saem da lista": 0.030357923667936784
+  },
+  "n_train": 80041,
+  "n_eligible": 52436,
+  "pct_eligible": 0.6551142539448532,
+  "base_rate_eligible": 0.09556411625600732
+ },
+ "fuga": {
+  "taxa_1": 0.04155169615322188,
+  "taxa_2": 0.15091352009744213,
+  "taxa_3mais": 0.2345076607787645,
+  "pct_altas_1": 0.538811359178421,
+  "pct_altas_3mais": 0.25604377756399843
+ },
+ "capacidade_10": {
+  "k": 0.1,
+  "n": 52436,
+  "contactos": 5244,
+  "positivos": 5011,
+  "modelo": 1255,
+  "regra": 1200.75,
+  "acaso": 501.1,
+  "recall_modelo": 0.2504490121732189,
+  "recall_regra": 0.2396228297744961,
+  "precisao_modelo": 0.2393211289092296,
+  "precisao_regra": 0.22897597254004576,
+  "delta": 54.25,
+  "por_1000_modelo": 23.933938515523685,
+  "por_1000_regra": 22.8993439621634,
+  "por_1000_acaso": 9.556411625600733
+ },
+ "capacidade_20": {
+  "k": 0.2,
+  "n": 52436,
+  "contactos": 10488,
+  "positivos": 5011,
+  "modelo": 2011,
+  "regra": 1882.1499999999999,
+  "acaso": 1002.2,
+  "recall_modelo": 0.40131710237477547,
+  "recall_regra": 0.3756036719217721,
+  "precisao_modelo": 0.19174294431731503,
+  "precisao_regra": 0.1794745875846286,
+  "delta": 128.85000000000014,
+  "por_1000_modelo": 38.35151422686704,
+  "por_1000_regra": 35.89423296971546,
+  "por_1000_acaso": 19.112823251201466
+ },
+ "capacidade_30": {
+  "k": 0.3,
+  "n": 52436,
+  "contactos": 15731,
+  "positivos": 5011,
+  "modelo": 2615,
+  "regra": 2486.749999999999,
+  "acaso": 1503.3,
+  "recall_modelo": 0.5218519257633207,
+  "recall_regra": 0.4962582318898422,
+  "precisao_modelo": 0.16623228021104824,
+  "precisao_regra": 0.1580795880745026,
+  "delta": 128.2500000000009,
+  "por_1000_modelo": 49.87031810206728,
+  "por_1000_regra": 47.42447936532152,
+  "por_1000_acaso": 28.669234876802197
+ },
+ "confusao": {
+  "validacao_k10": {
+   "tp": 1255,
+   "fp": 3989,
+   "fn": 3756,
+   "tn": 43436,
+   "recall": 0.2504490121732189,
+   "precisao": 0.2393211289092296,
+   "especificidade": 0.9158882445967317,
+   "accuracy": 0.8522961324281029,
+   "error_rate": 0.14770386757189716,
+   "f1": 0.24475865431496832,
+   "balanced_accuracy": 0.5831686283849753,
+   "sinalizadas": 0.10000762834693722,
+   "accuracy_sempre_nao": 0.9044358837439926
+  },
+  "treino_k10": {
+   "tp": 1742,
+   "fp": 3621,
+   "fn": 3269,
+   "tn": 43804,
+   "recall": 0.34763520255438035,
+   "precisao": 0.32481819876934553,
+   "especificidade": 0.9236478650500791,
+   "accuracy": 0.8686017240064078,
+   "error_rate": 0.1313982759935922,
+   "f1": 0.3358395989974937,
+   "balanced_accuracy": 0.6356415338022298,
+   "sinalizadas": 0.10227706156075979,
+   "accuracy_sempre_nao": 0.9044358837439926
+  },
+  "validacao_k20": {
+   "tp": 2011,
+   "fp": 8477,
+   "fn": 3000,
+   "tn": 38948,
+   "recall": 0.40131710237477547,
+   "precisao": 0.19174294431731503,
+   "especificidade": 0.8212546125461254,
+   "accuracy": 0.7811236555038523,
+   "error_rate": 0.21887634449614768,
+   "f1": 0.2595006129427705,
+   "balanced_accuracy": 0.6112858574604505,
+   "sinalizadas": 0.20001525669387443,
+   "accuracy_sempre_nao": 0.9044358837439926
+  },
+  "treino_k20": {
+   "tp": 2635,
+   "fp": 7856,
+   "fn": 2376,
+   "tn": 39569,
+   "recall": 0.5258431450808222,
+   "precisao": 0.25116766752454484,
+   "especificidade": 0.8343489720611492,
+   "accuracy": 0.8048668853459455,
+   "error_rate": 0.19513311465405447,
+   "f1": 0.3399561346922978,
+   "balanced_accuracy": 0.6800960585709857,
+   "sinalizadas": 0.20007246929590358,
+   "accuracy_sempre_nao": 0.9044358837439926
+  }
+ },
+ "calibracao": {
+  "max_diff_pp": 0.8482474037619898,
+  "decil_max": 7,
+  "decil10_obs": 23.93211289092296,
+  "decil1_obs": 3.8329519450800915
+ },
+ "equidade": {
+  "recall_total": 0.40131710237477547,
+  "Homens": {
+   "n": 25647.0,
+   "positive_rate": 0.09755526962217803,
+   "flagged_rate": 0.20286973135259484,
+   "recall": 0.39488409272581937
+  },
+  "Mulheres": {
+   "n": 26789.0,
+   "positive_rate": 0.09365784463772443,
+   "flagged_rate": 0.1972451379297473,
+   "recall": 0.40773216420884817
+  },
+  "AfricanAmerican": {
+   "n": 10984.0,
+   "positive_rate": 0.10260378732702112,
+   "flagged_rate": 0.23188273852876912,
+   "recall": 0.4383318544809228
+  },
+  "Asian": {
+   "n": 377.0,
+   "positive_rate": 0.08222811671087533,
+   "flagged_rate": 0.1246684350132626,
+   "recall": 0.3548387096774194
+  },
+  "Caucasian": {
+   "n": 37799.0,
+   "positive_rate": 0.09558453927352575,
+   "flagged_rate": 0.1975449085954655,
+   "recall": 0.39717686133407143
+  },
+  "Hispanic": {
+   "n": 1232.0,
+   "positive_rate": 0.07142857142857142,
+   "flagged_rate": 0.1680194805194805,
+   "recall": 0.3409090909090909
+  },
+  "Other": {
+   "n": 839.0,
+   "positive_rate": 0.08820023837902265,
+   "flagged_rate": 0.16209773539928488,
+   "recall": 0.3918918918918919
+  },
+  "Raça em falta": {
+   "n": 1205.0,
+   "positive_rate": 0.06473029045643154,
+   "flagged_rate": 0.06887966804979254,
+   "recall": 0.15384615384615385
+  },
+  "40–59 anos": {
+   "n": 16946.0,
+   "positive_rate": 0.0878673433258586,
+   "flagged_rate": 0.1882450135725245,
+   "recall": 0.4304902619207522
+  },
+  "60–79 anos": {
+   "n": 24592.0,
+   "positive_rate": 0.09621014964216006,
+   "flagged_rate": 0.1959580351333767,
+   "recall": 0.34699915469146236
+  },
+  "80 ou mais anos": {
+   "n": 6259.0,
+   "positive_rate": 0.10177344623741812,
+   "flagged_rate": 0.20786068061990734,
+   "recall": 0.3532182103610675
+  },
+  "Menos de 40 anos": {
+   "n": 4639.0,
+   "positive_rate": 0.1118775598189265,
+   "flagged_rate": 0.2537184738090106,
+   "recall": 0.6242774566473989
+  }
+ },
+ "modelos_pr_auc": {
+  "Ao acaso": 0.1134,
+  "Regra: internamentos anteriores": 0.1762,
+  "Regressão logística": 0.2105,
+  "Random forest": 0.2214,
+  "Kumo Tabular (Hugging Face)": 0.2331,
+  "HistGradientBoosting (v1)": 0.2345
+ },
+ "ganhos": {
+  "ganho_ate": 30,
+  "k10": {
+   "modelo": 25.04490121732189,
+   "regra": 23.962282977449608,
+   "acaso": 10.0
+  },
+  "k20": {
+   "modelo": 40.13171023747755,
+   "regra": 37.56036719217721,
+   "acaso": 20.0
+  },
+  "k30": {
+   "modelo": 52.18519257633207,
+   "regra": 49.62582318898422,
+   "acaso": 30.0
+  }
+ },
+ "demo": {
+  "A_casa": {
+   "risco": 0.2061044209877856,
+   "top_pct": 5.794205794205794,
+   "elegivel": true,
+   "follow_up_app": true,
+   "follow_up_20": true
+  },
+  "A_reabilitacao": {
+   "risco": 0.21910973569181727,
+   "top_pct": 4.795204795204796,
+   "elegivel": false,
+   "follow_up_app": false,
+   "follow_up_20": false
+  },
+  "B_casa": {
+   "risco": 0.08182800995383648,
+   "top_pct": 46.15384615384615,
+   "elegivel": true,
+   "follow_up_app": false,
+   "follow_up_20": false
+  }
+ },
+ "internamentos": {
+  "taxa_0": 0.08560668515326389,
+  "taxa_6_ou_mais": 0.4232861806311208
+ },
+ "pr_auc_elegiveis": {
+  "modelo": 0.20215090165797855,
+  "regra": 0.16924458692884634
+ }
+}
