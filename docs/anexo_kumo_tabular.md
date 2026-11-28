@@ -1,4 +1,4 @@
-# Anexo: Kumo Tabular como modelo desafiante (T2.3 / F2·4)
+# Anexo: Kumo Tabular como modelo desafiante (T2.3, D23)
 
 Nota da T2.3 (avaliar o Hugging Face Hub). Bancada: [notebooks/07_kumo_challenger.ipynb](../notebooks/07_kumo_challenger.ipynb).
 Decisão: D23 em [decisions.md](decisions.md).
@@ -64,4 +64,4 @@ explicar. Só ajudaria com poucos rótulos, o que não é o nosso caso. **Recome
 HistGradientBoosting como modelo v1.** O Kumo fica como desafiante documentado e não entra na app nem
 em `models/`. O Hugging Face Hub usa-se para publicar o modelo v1 e o Space da app (T4.1, T4.3).
 
-Estado: a F2·4 foi fechada no roadmap a 8/11 (opção A: Hub só para publicar). Este teste confirma-a.
+Estado: a equipa decidiu a 8/11 usar o Hub só para publicar (D23). Este teste confirma a decisão.

@@ -1,5 +1,5 @@
 """
-Kumo Tabular (NVIDIA, Hugging Face Hub) como modelo desafiante do v1 (T2.3 / F2·4).
+Kumo Tabular (NVIDIA, Hugging Face Hub) como modelo desafiante do v1 (T2.3, D23).
 
 Não substitui o HistGradientBoosting v1 (D17), não entra na app nem em models/.
 Precisa do ambiente à parte de requirements-kumo.txt (torch + sdm); o torch e o

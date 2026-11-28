@@ -1,4 +1,4 @@
-# Ambiente à parte para o modelo desafiante Kumo Tabular (T2.3 / F2·4).
+# Ambiente à parte para o modelo desafiante Kumo Tabular (T2.3, D23).
 # Não entra na app nem em models/: só para notebooks/07_kumo_challenger.ipynb.
 #
 # Local (Windows, GPU NVIDIA): instalar primeiro o torch com CUDA, depois este ficheiro:

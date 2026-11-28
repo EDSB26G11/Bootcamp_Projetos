@@ -50,7 +50,7 @@ def simple_models() -> dict:
 
 
 def hist_gradient_boosting(**preprocessor_kwargs):
-    """Modelo v1 (F2·1). Os argumentos vão para build_preprocessor (ablações F2·2).
+    """Modelo v1 (D17). Os argumentos vão para build_preprocessor (ablações, D18).
 
     Sem early stopping: a validação interna do sklearn é aleatória por
     encontro, não por doente (D13), e deixaria passar fuga por doente.
@@ -63,7 +63,7 @@ def hist_gradient_boosting(**preprocessor_kwargs):
 def candidate_models() -> dict:
     """Modelos candidatos da T2.2, com o pré-processamento comum (D16) e uma
     configuração razoável; o tuning fica para a fase seguinte. O modelo v1 é
-    o HistGradientBoosting (F2·1)."""
+    o HistGradientBoosting (D17)."""
     return {
         "random_forest": make_pipeline(build_preprocessor(), RandomForestClassifier(
             n_estimators=300, min_samples_leaf=50, max_features="sqrt", n_jobs=-1, random_state=SEED)),

@@ -1,26 +1,41 @@
 """
-Gráficos no padrão IBCS (aula W8, T3.7).
+Gráficos no padrão IBCS (aula W8, T3.7), com o mesmo estilo em todo o projeto:
+relatório (Projeto_Final), EDA (docs/figures) e deck (src/deck_figures.py).
 
-Duas utilizações:
-- gráficos de desenvolvimento (notebooks): só a notação. set_style() tira a
-  grelha e as molduras; as cores têm significado (cinzento escuro = valor
-  medido, AC) e os valores escrevem-se nas barras em vez de um eixo;
-- páginas de relatório (Projeto_Final, deck): todas as regras. report_page()
-  põe a mensagem em cima, o título em três linhas (quem, o quê, quando) e o
-  rodapé (fonte, dados usados, o que ficou de fora).
+Layout de uma página de relatório (report_page), igual à curva de ganhos:
+- em cima, a mensagem: uma frase que se pode verificar, a negrito;
+- o título em três linhas: quem (dados), o quê (a medida a negrito e a unidade)
+  e quando (período e tipo de dados), a cinzento;
+- em baixo, o rodapé: fonte, definições e o que ficou de fora.
 
-Números em português: vírgula decimal (pct, num).
+Cores com significado fixo (paleta do modelo NOVA IMS usado no deck):
+- preto = valor medido (AC); cinzento claro = contexto (ao acaso, restantes);
+- verde = destaque (o modelo escolhido, o grupo que interessa);
+- verde/vermelho só nas variações (Δ) melhor/pior; azul = variação neutra;
+- tracejado = referência (acaso, taxa global) ou previsto (FC).
+Rótulos diretos em vez de legendas e de eixos de valores; sem grelha.
+Números em português (vírgula decimal): pct, num.
 """
+
+import textwrap
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
 
-AC = "#404040"        # valor medido (actual)
-GREY = "#8c8c8c"      # referência / baseline
-LIGHT = "#c8c8c8"     # ordem ao acaso, contexto
-GOOD = "#8CB400"      # variação desejável
-BAD = "#E2001A"       # variação indesejável
-NOTE = "#666666"      # rodapés e rótulos secundários
+# Paleta (a mesma do deck).
+INK = "#000000"         # valor medido (AC)
+MID = "#4D4D4D"         # texto secundário, linhas de referência
+CONTEXT = "#E7E7E7"     # contexto (ao acaso, restantes)
+GREEN = "#0EE071"       # destaque / variação positiva
+GREEN_TEXT = "#0A9F50"  # o mesmo verde, escurecido para texto
+RED = "#FF4011"         # variação negativa
+BLUE = "#3777FF"        # variação neutra
+BAND = "#F2F2F2"        # faixa de fundo (zona a destacar)
+FONT = 13
+
+# Nomes antigos, para os notebooks que os importam (01_eda).
+AC, GREY, LIGHT, GOOD, BAD, NOTE = INK, MID, CONTEXT, GREEN, RED, MID
 
 # Nomes dos modelos no relatório (UN 1.1: o mesmo nome em todas as páginas).
 MODEL_LABELS = {
@@ -29,20 +44,22 @@ MODEL_LABELS = {
     "logreg": "Regressão logística",
     "logreg_l1": "Regressão logística L1",
     "logreg_balanced": "Regressão logística com pesos",
-    "rank_inpatient": "Ordenar por internamentos anteriores",
+    "rank_inpatient": "Regra: internamentos anteriores",
     "rule_inpatient_ge_1": "Regra: ≥ 1 internamento anterior",
-    "random": "Ordem ao acaso",
+    "random": "Ao acaso",
 }
 
 
 def set_style():
-    """Estilo base: sem grelha, sem molduras, cinzentos, letra legível."""
+    """Estilo base: Arial (corpo do deck), sem grelha nem molduras, letra para ler num ecrã."""
     mpl.rcParams.update({
-        "axes.grid": False, "axes.spines.top": False, "axes.spines.right": False,
-        "axes.edgecolor": GREY, "axes.labelcolor": AC, "xtick.color": AC, "ytick.color": AC,
-        "axes.prop_cycle": mpl.cycler(color=[AC, GREY, LIGHT]),
-        "font.size": 10, "axes.titlesize": 11, "axes.titlelocation": "left",
-        "legend.frameon": False, "figure.dpi": 100, "savefig.dpi": 150,
+        "font.family": "Arial", "font.size": FONT, "axes.grid": False,
+        "axes.spines.top": False, "axes.spines.right": False,
+        "axes.edgecolor": INK, "axes.labelcolor": INK, "xtick.color": MID, "ytick.color": INK,
+        "text.color": INK, "axes.prop_cycle": mpl.cycler(color=[INK, MID, CONTEXT]),
+        "axes.titlesize": FONT - 1, "axes.titlelocation": "left", "legend.frameon": False,
+        "figure.dpi": 100, "savefig.dpi": 220, "savefig.bbox": "tight", "savefig.pad_inches": 0.15,
+        "savefig.facecolor": "white", "hatch.linewidth": 0.8,
     })
 
 
@@ -58,98 +75,166 @@ def num(x, decimals=0, sign=False):
     return s.replace(",", " ").replace(".", ",")
 
 
-def label_bars(ax, bars, texts, color=AC, pad=3, fontsize=9):
-    """Escreve o valor no fim de cada barra horizontal e retira o eixo de valores (SI 3.1)."""
-    for b, t in zip(bars, texts):
-        ax.annotate(t, (b.get_x() + b.get_width(), b.get_y() + b.get_height() / 2),
-                    xytext=(pad, 0), textcoords="offset points", va="center", fontsize=fontsize, color=color)
-    ax.xaxis.set_visible(False)
-    ax.spines["bottom"].set_visible(False)
+def _wrap(text, width_in, fontsize, bold=False):
+    """Parte o texto em linhas que cabem em width_in polegadas (estimativa para Arial)."""
+    per_char = fontsize / 72 * (0.56 if bold else 0.5)
+    width = max(int(width_in / per_char), 20)
+    return "\n".join("\n".join(textwrap.wrap(p, width)) for p in text.split("\n"))
 
 
-def report_page(fig, message, who, what, what_unit, when, footnote, top=0.74, left=None):
-    """Mensagem (uma frase que se pode verificar), título em três linhas e rodapé.
-
-    what aparece a negrito (a medida); what_unit é o resto da linha (unidade, recorte).
-    """
-    fig.text(0.02, 0.985, message, fontsize=12, fontweight="bold", va="top", wrap=True)
-    fig.text(0.02, top + 0.15, who, fontsize=9.5, va="top")
-    bold = fig.text(0.02, top + 0.11, what, fontsize=9.5, fontweight="bold", va="top")
-    fig.canvas.draw()  # mede o texto a negrito para pôr a unidade logo a seguir
-    x_end = fig.transFigure.inverted().transform(bold.get_window_extent().corners()[-1])[0]
-    fig.text(x_end + 0.008, top + 0.11, what_unit, fontsize=9.5, va="top")
-    fig.text(0.02, top + 0.07, when, fontsize=9.5, va="top")
-    fig.text(0.02, 0.01, footnote, fontsize=7.5, color=NOTE, va="bottom", wrap=True)
-    fig.subplots_adjust(top=top, bottom=0.16, **({"left": left} if left else {}))
+def report_page(fig, message, who, what, what_unit, when, footnote, axes_left=0.08, axes_right=0.97):
+    """Mensagem, título em três linhas e rodapé, com as mesmas posições (em polegadas)
+    em todas as páginas. A área dos gráficos fica com o espaço que sobra."""
+    w, h = fig.get_size_inches()
+    lh = lambda fs: fs * 1.32 / 72  # noqa: E731  altura de uma linha, em polegadas
+    y = h - 0.12
+    msg = _wrap(message, w - 0.3, FONT + 1, bold=True)
+    fig.text(0.03, y / h, msg, fontsize=FONT + 1, fontweight="bold", va="top")
+    y -= lh(FONT + 1) * (msg.count("\n") + 1) + 0.22
+    fig.text(0.03, y / h, who, fontsize=FONT - 1, va="top", color=MID)
+    y -= lh(FONT - 1)
+    b = fig.text(0.03, y / h, what, fontsize=FONT - 1, fontweight="bold", va="top")
+    fig.canvas.draw()
+    x_end = fig.transFigure.inverted().transform(b.get_window_extent().corners()[-1])[0]
+    fig.text(x_end + 0.11 / w, y / h, what_unit, fontsize=FONT - 1, va="top", color=MID)
+    y -= lh(FONT - 1)
+    fig.text(0.03, y / h, when, fontsize=FONT - 1, va="top", color=MID)
+    y -= lh(FONT - 1) + 0.45
+    foot = _wrap(footnote, w - 0.3, FONT - 4)
+    fig.text(0.03, 0.1 / h, foot, fontsize=FONT - 4, color=MID, va="bottom")
+    bottom = 0.1 + lh(FONT - 4) * (foot.count("\n") + 1) + 0.75
+    fig.subplots_adjust(top=y / h, bottom=bottom / h, left=axes_left, right=axes_right)
     return fig
 
 
-def bars_page(values, message, who, what, what_unit, when, footnote, fmt=pct, highlight=(), ref=None,
-              ref_label=None, figsize=(9, 4.6)):
-    """Página com barras horizontais (estrutura na vertical, UN 3.4), valores escritos
-    e, opcionalmente, uma linha de referência com rótulo direto (ex.: taxa global)."""
-    fig, ax = plt.subplots(figsize=figsize)
-    y = range(len(values))
-    colors = [AC if (not highlight or name in highlight) else LIGHT for name in values.index]
-    bars = ax.barh(list(y), values.values, color=colors, height=0.6)
+def hbars(ax, labels, values, colors, texts, xmax=None, err=None, height=0.62, fontsize=FONT - 1):
+    """Barras horizontais com o valor escrito no fim (sem eixo de valores).
+    err: (baixo, alto) do IC; o valor fica escrito depois do IC."""
+    values = np.asarray(values, dtype=float)
+    y = np.arange(len(values))
+    xerr = None if err is None else [values - np.asarray(err[0]), np.asarray(err[1]) - values]
+    bars = ax.barh(y, values, color=colors, height=height, xerr=xerr,
+                   error_kw=dict(ecolor=MID, lw=1, capsize=0))
+    ax.set_yticks(y, labels)
     ax.invert_yaxis()
-    ax.set_yticks(list(y), [str(i) for i in values.index])
-    ax.tick_params(axis="y", length=0)
-    label_bars(ax, bars, [fmt(v) for v in values.values])
-    ax.set_xlim(0, values.max() * 1.18)
-    if ref is not None:
-        ax.axvline(ref, color=GREY, ls="--", lw=1)
-        ax.annotate(ref_label or fmt(ref), (ref, len(values) - 0.4), ha="center", va="top", fontsize=8,
-                    color=GREY, annotation_clip=False)
-    return report_page(fig, message, who, what, what_unit, when, footnote, top=0.66)
+    ax.tick_params(axis="y", length=0, labelsize=fontsize)
+    ax.xaxis.set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ends = values if err is None else np.asarray(err[1])
+    ax.set_xlim(0, xmax or ends.max() * 1.25)
+    for b, end, t in zip(bars, ends, texts):
+        ax.annotate(t, (end, b.get_y() + b.get_height() / 2), xytext=(4, 0), textcoords="offset points",
+                    va="center", fontsize=fontsize, fontweight="bold")
+    return bars
+
+
+def ref_line(ax, x, label):
+    """Linha vertical tracejada de referência (ex.: taxa global), com rótulo direto em cima."""
+    ax.axvline(x, color=MID, ls="--", lw=1)
+    ax.annotate(label, (x, -0.55), ha="center", va="bottom", fontsize=FONT - 3, color=MID, annotation_clip=False)
+
+
+def bars_page(values, message, who, what, what_unit, when, footnote, fmt=pct, highlight=(), ref=None,
+              ref_label=None, figsize=(10, 4.8), err=None, n=None, panels=None):
+    """Página com barras horizontais (estrutura na vertical, UN 3.4), valores escritos,
+    destaque a verde e, se pedido, uma linha de referência (ex.: taxa global).
+
+    values: Series (um painel), ou panels = [(Series, título, err, n), ...] para vários painéis.
+    highlight: categorias a verde; sem destaque, todas a preto; com destaque, as outras a cinzento.
+    err: (baixo, alto) do IC 95%; n: Series com o n de cada categoria (escrito ao lado do valor)."""
+    panels = panels or [(values, None, err, n)]
+    fig, axes = plt.subplots(1, len(panels), figsize=figsize, squeeze=False,
+                             gridspec_kw={"wspace": 0.55} if len(panels) > 1 else None)
+    for ax, (vals, title, e, nn) in zip(axes[0], panels):
+        colors = [GREEN if i in highlight else CONTEXT for i in vals.index] if highlight else [INK] * len(vals)
+        ns = nn.values if nn is not None else [None] * len(vals)
+        texts = [fmt(v) + (f"  n={num(k)}" if k is not None else "") for v, k in zip(vals.values, ns)]
+        top = max(vals.max(), np.max(e[1]) if e is not None else 0)
+        hbars(ax, [str(i) for i in vals.index], vals.values, colors, texts, err=e,
+              xmax=top * (1.6 if nn is not None else 1.25))
+        if ref is not None:
+            ref_line(ax, ref, ref_label or fmt(ref))
+        if title:
+            ax.set_title(title, loc="left", fontsize=FONT - 1, color=MID, pad=20 if ref is not None else 6)
+    return report_page(fig, message, who, what, what_unit, when, footnote,
+                       axes_left=0.2 if len(panels) == 1 else 0.12)
 
 
 def model_vs_baseline(table, k, n_altas, footnote):
     """Página "modelo contra baseline à mesma capacidade" (exemplo da W8, slide 40).
 
-    table: DataFrame com índice = método e colunas 'encontradas' (readmissões
-    encontradas) e a linha de referência 'Ordenar por internamentos anteriores'.
-    Barras AC à esquerda; à direita, a diferença face à referência, verde se
-    melhor e vermelha se pior, na mesma escala.
+    table: DataFrame com índice = método e coluna 'encontradas' (readmissões
+    encontradas), com a linha de referência 'Ordenar por internamentos anteriores'.
+    À esquerda, AC (modelo a verde, regra a preto, acaso a cinzento); à direita, a
+    diferença face à regra, verde se melhor e vermelha se pior, na mesma escala (CH 4.1).
     """
     ref_name = "Ordenar por internamentos anteriores"
     vals = table["encontradas"]
+    labels = [MODEL_LABELS["rank_inpatient"] if i == ref_name else "Ao acaso" if "acaso" in i else
+              "Modelo v1" if i.startswith("Modelo") else i for i in vals.index]
     delta = vals - vals[ref_name]
-    # Mesma escala nos dois níveis (CH 4.1): a largura de cada painel é proporcional ao intervalo que mostra.
-    lim = max(vals.max(), 1)
-    d_lo, d_hi = min(delta.min(), 0) * 1.4, max(delta.max(), 0) * 1.4
-    fig, (ax, axd) = plt.subplots(1, 2, figsize=(10.5, 4.6),
-                                  gridspec_kw={"width_ratios": [lim * 1.15, d_hi - d_lo], "wspace": 0.08})
-    y = range(len(vals))
-    bars = ax.barh(list(y), vals.values, color=AC, height=0.6)
-    ax.invert_yaxis()
-    ax.set_yticks(list(y), vals.index, fontsize=10)
-    ax.tick_params(axis="y", length=0)
-    label_bars(ax, bars, [num(v) for v in vals.values])
-    ax.set_title("AC", color=NOTE, fontsize=9, loc="left")
-    colors = [GOOD if d > 0 else BAD for d in delta.values]
-    dbars = axd.barh(list(y), delta.values, color=colors, height=0.6)
+    lim = max(vals.max(), 1) * 1.22
+    d_lo, d_hi = min(delta.min(), 0) * 1.35, max(delta.max(), 0) * 1.6 + 60
+    fig, (ax, axd) = plt.subplots(1, 2, figsize=(10, 4.8),
+                                  gridspec_kw={"width_ratios": [lim, d_hi - d_lo], "wspace": 0.05})
+    colors = [GREEN if lab == "Modelo v1" else CONTEXT if lab == "Ao acaso" else INK for lab in labels]
+    hbars(ax, labels, vals.values, colors, [num(v) for v in vals.values], xmax=lim)
+    ax.set_title("AC", loc="left", fontsize=FONT - 1, color=MID)
+    y = np.arange(len(vals))
+    axd.barh(y, delta.values, color=[GREEN if d > 0 else RED for d in delta.values], height=0.62)
     axd.invert_yaxis()
-    axd.axvline(0, color=AC, lw=1)
-    axd.set_yticks([])
+    axd.axvline(0, color=INK, lw=1)
     axd.set_xlim(d_lo, d_hi)
-    for b, d, name in zip(dbars, delta.values, vals.index):
-        if name == ref_name:
-            continue
-        x = b.get_width()
-        axd.annotate(num(d, sign=True), (x, b.get_y() + b.get_height() / 2), xytext=(4 if d > 0 else -4, 0),
-                     textcoords="offset points", va="center", ha="left" if d > 0 else "right", fontsize=9)
+    axd.set_yticks([])
     axd.xaxis.set_visible(False)
     for s in ("bottom", "left"):
         axd.spines[s].set_visible(False)
-    axd.set_title("Δ face a internamentos anteriores", color=NOTE, fontsize=9, loc="left")
-    ax.set_xlim(0, lim * 1.15)
-    model_name = vals.index[0]
-    msg = (f"Com follow-up às {num(n_altas * k)} altas de maior risco ({pct(k, 0)} das {num(n_altas)} elegíveis), "
-           f"o modelo encontraria {num(vals[model_name])} readmissões em menos de 30 dias, "
-           f"{num(delta[model_name])} mais do que ordenando por internamentos anteriores")
+    for yi, d in zip(y, delta.values):
+        if abs(d) >= 0.5:
+            axd.annotate(num(d, sign=True), (d, yi), xytext=(4 if d > 0 else -4, 0), textcoords="offset points",
+                         va="center", ha="left" if d > 0 else "right", fontsize=FONT - 1, fontweight="bold")
+    axd.set_title("Δ face à regra", loc="left", fontsize=FONT - 1, color=MID)
+    model = vals.index[0]
+    # Nº real de altas na lista (com os empates no corte pode passar de k × n): encontradas / precisão.
+    n_list = round(vals[model] / table.loc[model, "precision"]) if "precision" in table else round(n_altas * k)
+    msg = (f"Com follow-up às {num(n_list)} altas de maior risco ({pct(k, 0)} das {num(n_altas)} elegíveis), "
+           f"o modelo encontra {num(vals[model])} readmissões em menos de 30 dias, "
+           f"{num(delta[model])} mais do que a regra dos internamentos anteriores")
     return report_page(
         fig, msg,
-        "Diabetes 130-US hospitals, altas de treino elegíveis para follow-up (previsões out-of-fold, 5 folds por doente)",
-        "Readmissões <30 dias encontradas", f"em #, com capacidade para {pct(k, 0)} das altas elegíveis, por método",
-        "1999–2008, AC e Δ face à ordenação por internamentos anteriores", footnote, top=0.66, left=0.27)
+        "Rede hospitalar, altas de treino elegíveis para follow-up (D21)",
+        "Readmissões < 30 dias encontradas", f"em #, com follow-up a {pct(k, 0)} das altas elegíveis, por método",
+        "Validação cruzada, 5 folds por doente (dados de 1999–2008) · AC e Δ face à regra", footnote,
+        axes_left=0.24)
+
+
+def lines_page(curves, message, who, what, what_unit, when, footnote, ref=None, ref_label=None,
+               xlog=False, xticks=None, xlabel="", yfmt=None, figsize=(10, 5.6)):
+    """Página com linhas (ex.: curva de aprendizagem), com o nome escrito no fim de cada linha.
+
+    curves: lista de (Series indexada por x, rótulo, cor, destaque); destaque = linha grossa
+    e valores escritos por cima; as outras têm os valores por baixo."""
+    fig, ax = plt.subplots(figsize=figsize)
+    fmt = yfmt or (lambda z: num(z, 3))
+    for s, label, color, strong in curves:
+        tc = GREEN_TEXT if color == GREEN else color
+        ax.plot(s.index, s.values, color=color, lw=3 if strong else 2, marker="o", ms=6 if strong else 5)
+        for x, v in zip(s.index, s.values):
+            ax.annotate(fmt(v), (x, v), xytext=(0, 9 if strong else -15), textcoords="offset points",
+                        ha="center", fontsize=FONT - 3, color=tc)
+        ax.annotate(label, (s.index[-1], s.values[-1]), xytext=(14, 0), textcoords="offset points", va="center",
+                    fontsize=FONT - 1, color=tc, fontweight="bold" if strong else None, annotation_clip=False)
+    if xlog:
+        ax.set_xscale("log")
+    if xticks is not None:
+        ax.set_xticks(xticks, [num(t) for t in xticks])
+        ax.minorticks_off()
+    if ref is not None:
+        ax.axhline(ref, color=MID, ls="--", lw=1.2)
+        ax.annotate(ref_label, (xticks[0] if xticks is not None else ax.get_xlim()[0], ref), xytext=(0, 5),
+                    textcoords="offset points", fontsize=FONT - 3, color=MID)
+    ax.yaxis.set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.tick_params(axis="x", length=0, labelsize=FONT - 2)
+    ax.set_xlabel(xlabel, fontsize=FONT - 1)
+    return report_page(fig, message, who, what, what_unit, when, footnote, axes_left=0.05, axes_right=0.8)

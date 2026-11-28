@@ -2,7 +2,7 @@
 
 Colunas de `data/processed/diabetic_data_clean.csv` que podem entrar no modelo
 por serem conhecidas **no momento da alta**. Resulta das decisões D8–D12 em
-[decisions.md](decisions.md), fechadas no roadmap a 29/10.
+[decisions.md](decisions.md), aceites pela equipa a 29/10.
 
 Aprovar aqui quer dizer só "não há fuga de informação". Se cada coluna fica no
 modelo final (constantes, redundantes, quase sem variação, código vs.

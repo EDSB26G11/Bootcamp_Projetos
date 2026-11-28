@@ -1,4 +1,4 @@
-"""Testes do desafiante Kumo Tabular (T2.3 / F2·4).
+"""Testes do desafiante Kumo Tabular (T2.3, D23).
 
 Não precisam de GPU, torch, sdm nem dos pesos: o Kumo é substituído por um mock
 que regista o contexto e as linhas a prever de cada chamada.

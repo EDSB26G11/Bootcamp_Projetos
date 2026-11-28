@@ -70,7 +70,7 @@ Os notebooks em `notebooks/` são as bancadas de trabalho, um por fase:
 | [04_tuning_selection](notebooks/04_tuning_selection.ipynb) | Modelação | seleção do modelo, ablação, threshold pela capacidade, curva de ganhos |
 | [05_interpretation_fairness](notebooks/05_interpretation_fairness.ipynb) | Avaliação | importância por permutação, métricas por idade/raça/sexo |
 | [06_deployment](notebooks/06_deployment.ipynb) | Deployment | refit, gravar o modelo (skops), testar a app |
-| [07_kumo_challenger](notebooks/07_kumo_challenger.ipynb) | Modelação | Kumo Tabular (Hugging Face) como desafiante do v1 nas mesmas OOF: poucos rótulos, custos, importância por permutação (T2.3, F2·4); não entra na app |
+| [07_kumo_challenger](notebooks/07_kumo_challenger.ipynb) | Modelação | Kumo Tabular (Hugging Face) como desafiante do v1 nas mesmas OOF: poucos rótulos, custos, importância por permutação (T2.3, D23); não entra na app |
 
 Documentação em `docs/`:
 

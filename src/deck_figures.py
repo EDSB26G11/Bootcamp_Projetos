@@ -33,22 +33,16 @@ from src.models.evaluate import calibration_table, metrics_by_group  # noqa: E40
 from src.models.threshold import rank_baseline_at_k  # noqa: E402
 from src.models.train import MODEL_DIR, load_model  # noqa: E402
 from src.pipeline import PROCESSED, SPLITS, read_processed  # noqa: E402
-from src.viz import num, pct  # noqa: E402
+from src.viz import BAND, BLUE, CONTEXT, FONT, GREEN, GREEN_TEXT, INK, MID, RED, num, pct, report_page  # noqa: E402
 
 OUT = Path("reports/figures/deck")
 NUMBERS = Path("reports/deck_numbers.json")
 OOF = Path("reports/oof_v1.csv")
 
 # Paleta do modelo NOVA IMS do deck.
-INK = "#000000"      # AC
-CONTEXT = "#E7E7E7"  # contexto
-MID = "#4D4D4D"      # rótulos secundários
-GREEN = "#0EE071"    # destaque / variação positiva
-RED = "#FF4011"      # variação negativa
-BLUE = "#3777FF"     # variação neutra
+# Paleta e letra: as de src/viz.py (um só estilo para relatório, EDA e deck).
 CAPACITY = 0.20      # D24
 AGE_BANDS = ["Menos de 40 anos", "40–59 anos", "60–79 anos", "80 ou mais anos"]
-FONT = 13
 
 # Destino da alta: nomes curtos em português (como no deck) e se fica na lista (D21).
 DEST = {
@@ -419,21 +413,21 @@ def fig_ganhos(g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | No
     page=True acrescenta a mensagem, o título em três linhas e o rodapé (relatório)."""
     cut = _gain_until(g)
     fig, ax = plt.subplots(figsize=figsize or ((10, 6.4) if page else (9.2, 4.6)))
-    ax.axvspan(0, cut, color="#F2F2F2", zorder=0)
+    ax.axvspan(0, cut, color=BAND, zorder=0)
     ax.text(cut / 2, 97, "Cada follow-up extra rende\nmais do que ao acaso", ha="center", va="top",
             fontsize=FONT - 2, fontweight="bold", color=MID)
     ax.plot(g.index, g["acaso"], color="#9A9A9A", ls="--", lw=1.6, zorder=2)
     ax.plot(g.index, g["regra"], color=INK, lw=2, zorder=3)
     ax.plot(g.index, g["modelo"], color=GREEN, lw=3.2, zorder=4)
     # Rótulos diretos junto às linhas, onde estão afastadas (no fim as três juntam-se em 100%).
-    for col, label, color, xk, dy, va in [("modelo", "Modelo v1", "#0A9F50", 55, 10, "bottom"),
+    for col, label, color, xk, dy, va in [("modelo", "Modelo v1", GREEN_TEXT, 55, 10, "bottom"),
                                           ("regra", "Regra simples", INK, 70, -10, "top"),
                                           ("acaso", "Ao acaso", "#7A7A7A", 85, -10, "top")]:
         ax.annotate(label, (xk, g.loc[xk, col]), xytext=(0, dy), textcoords="offset points", ha="center", va=va,
                     fontsize=FONT - 1, color=color, fontweight="bold" if col == "modelo" else None)
     # Capacidade escolhida (D24): os três valores escritos junto à linha.
     ax.axvline(k_cap, color=MID, lw=1, ls=":", zorder=1)
-    for col, color, dx, ha, fw in [("modelo", "#0A9F50", -6, "right", "bold"), ("regra", INK, 6, "left", None),
+    for col, color, dx, ha, fw in [("modelo", GREEN_TEXT, -6, "right", "bold"), ("regra", INK, 6, "left", None),
                                     ("acaso", "#7A7A7A", 6, "left", None)]:
         yv = g.loc[k_cap, col]
         ax.plot(k_cap, yv, "o", ms=6, color=GREEN if col == "modelo" else color, zorder=5)
@@ -453,25 +447,18 @@ def fig_ganhos(g: pd.DataFrame, k_cap: int = 20, page: bool = False, n: int | No
     ax.set_xlabel("Altas com follow-up, em % das altas elegíveis (por ordem de risco)", fontsize=FONT - 1)
     if page:
         m, r = g.loc[k_cap, "modelo"], g.loc[k_cap, "regra"]
-        fig.text(0.03, 0.985, f"Com follow-up a {k_cap}% das altas, o modelo encontra {num(m, 0)}% das readmissões "
-                 f"(regra simples: {num(r, 0)}%; acaso: {k_cap}%);\ndepois dos {cut}%, cada follow-up extra "
-                 "rende menos do que ao acaso", fontsize=FONT + 1, fontweight="bold", va="top")
-        fig.text(0.03, 0.865, f"Rede hospitalar, altas elegíveis para follow-up (n = {num(n)}; {num(pos)} readmissões)",
-                 fontsize=FONT - 1, va="top", color=MID)
-        b = fig.text(0.03, 0.83, "Readmissões < 30 dias encontradas", fontsize=FONT - 1, fontweight="bold", va="top")
-        fig.canvas.draw()
-        x_end = fig.transFigure.inverted().transform(b.get_window_extent().corners()[-1])[0]
-        fig.text(x_end + 0.012, 0.83, "em % acumulada, por % de altas com follow-up", fontsize=FONT - 1, va="top",
-                 color=MID)
-        fig.text(0.03, 0.795, "Validação cruzada, 5 folds por doente (dados de 1999–2008)", fontsize=FONT - 1,
-                 va="top", color=MID)
-        fig.text(0.03, 0.015,
-                 "Faixa cinzenta: cada 10% de altas com follow-up a mais encontra mais de 10% das readmissões "
-                 "(mais do que ao acaso).\nRegra simples: ordenar pelos internamentos no ano anterior, empates ao "
-                 "acaso (média de 20 sorteios). Altas elegíveis: altas para a comunidade sem outro\nacompanhamento "
-                 "(D21). Previsões out-of-fold do treino; a confirmar no teste (T3.6). Gráfico: src/deck_figures.py.",
-                 fontsize=FONT - 4, color=MID, va="bottom")
-        fig.subplots_adjust(top=0.72, bottom=0.2, left=0.08, right=0.97)
+        report_page(
+            fig, f"Com follow-up a {k_cap}% das altas, o modelo encontra {num(m, 0)}% das readmissões (regra "
+            f"simples: {num(r, 0)}%; acaso: {k_cap}%); depois dos {cut}%, cada follow-up extra rende menos do que "
+            "ao acaso",
+            f"Rede hospitalar, altas de treino elegíveis para follow-up (n = {num(n)}; {num(pos)} readmissões; D21)",
+            "Readmissões < 30 dias encontradas", "em % acumulada, por % de altas com follow-up",
+            "Validação cruzada, 5 folds por doente (dados de 1999–2008)",
+            "Fonte: Diabetes 130-US hospitals (UCI), 1999–2008. Faixa cinzenta: cada 10% de altas com follow-up a "
+            "mais encontra mais de 10% das readmissões (mais do que ao acaso). Regra simples: ordenar pelos "
+            "internamentos no ano anterior, empates ao acaso (média de 20 sorteios). Altas elegíveis: altas para a "
+            "comunidade sem outro acompanhamento (D21). Previsões out-of-fold do treino; a confirmar no teste (T3.6).")
+        return fig
     else:
         fig.subplots_adjust(right=0.97, top=0.97)
     return fig

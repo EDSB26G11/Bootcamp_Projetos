@@ -13,14 +13,14 @@
 > **Not read directly:** W2, W7–W8 material (team docs cite W8 IBCS rules — see §3), W9+ slides (GitHub Actions,
 > Spaces, LLMs/agents; CI and the Space were built on 14 Nov from the W1 calendar and W5 slides). Class transcripts
 > are auto-generated and garbled; only summaries and slides are authoritative.
-> **Live task tracker:** the team roadmap artifact (tasks, decisions F2·x/F3·x, "O que falta fazer").
+> **Task status:** §4.4 below; decisions in `docs/decisions.md` (D1–D26).
 
 ---
 
 ## 1. Rules for Claude Code
 
 1. **The team decides; Claude proposes and implements.** Only `Aceite` rows in `decisions.md` are binding.
-   `Proposta` / open roadmap items (§4.4) → present options with numbers, don't implement silently.
+   `Proposta` decisions and open items (§4.4) → present options with numbers, don't implement silently.
 2. **The test set is locked until T3.6** and is opened **once**, for the single chosen model. All selection,
    tuning, thresholds and fairness use the 5-fold out-of-fold (OOF) predictions on train (D13).
 3. **Keep the pipeline runnable end-to-end** (`Projeto_Final.ipynb` runs top to bottom from `src/` + `reports/`).
@@ -107,7 +107,7 @@ dates; human review of every contact; calibration valid only for this population
 - **Model v1 (D17): `HistGradientBoostingClassifier`**, no early stopping. OOF PR-AUC **0.234 ± 0.008**
   (logistic 0.210, RF 0.221, random 0.113). Train PR-AUC 0.379 → large overfit; small tuning is now **optional**
   (if not done, the report says "untuned" and notebook 04's name changes).
-- Ablation (D18): `payer_code` stays; incomplete-registration flag out; `max_glu_serum` **stays** (F3·3, 14 Nov) →
+- Ablation (D18): `payer_code` stays; incomplete-registration flag out; `max_glu_serum` **stays** (14 Nov) →
   34 features.
 - Calibration (D22): predicted vs observed within 1 pp per decile on OOF → no recalibration.
 - At k = 10% eligible: recall 25.0% vs 24.0% (`number_inpatient`) vs 10% random; at 20%: 40.1% vs 37.6%.
@@ -127,12 +127,27 @@ dates; human review of every contact; calibration valid only for this population
   with secret `TAFS`. Space: `SandraLurdes/Bootcampprojectodiabetes` (public, ZeroGPU hardware; a dummy
   `@spaces.GPU` function lets it boot, the model runs on CPU).
 
-### 4.4 Open items (roadmap, 18 Nov)
+### 4.4 Open items (review of 28 Nov)
 | Item | Status |
 |---|---|
-| Capacity (F3·1) | **closed**: 20% (D24) |
-| `max_glu_serum` (F3·3, D18) | **closed**: stays |
-| Targets of D20 (F3·2) | `Proposta` — **must be closed before opening the test**; T0.6 stays open until then |
+| Capacity: 20% (D24, aceite) vs 30% in the app (D26, `Proposta`) | **team decision**, before the demo. At 30% the gain over the rule stays +128 (vs +129 at 20%) and precision drops to 16.6%; the gains curve shows extra follow-ups beat random only up to 30% |
+| Targets of D20 | `Proposta` — **must be closed before opening the test**; T0.6 stays open until then |
+| Final test evaluation T3.6 (once) | to do — critical. Then fill: model card "Avaliação no teste", deck A13 `[__]` and slides 5, 7–9, Projeto_Final conclusions/Abstract, problem_framing |
+| Deck (v6 in Teams, 26 slides) | placeholders: date on cover, pilot length `[N]`, decision date `[data]`, D7 `[rever]` (A12), test numbers; final PDF into the ZIP |
+| Code freeze `v1.0` tag + Moodle ZIP (`EDSB26_G11.csv` complete) | no tag yet; confirm the exact deadline with the lecturers (W12 was 23–27 Nov) |
+| Commit the working tree | figures/report restyle (src/viz.py, src/report_figures.py), roadmap clean-up |
+| `docs/monitoring.md` (T4.5) | to do (KPIs: % of top-k with follow-up, discharge→follow-up time, flag rate, drift, flags by group) |
+| Test the Space with test-set cases and invalid inputs; demo script + plan B video | to do |
+| W3 repo rules | AI usage log is git-ignored (`docs/status_apoio_ia.md`): commit a clean `docs/ai_usage.md`; `requirements-installed.txt` missing; notebooks are `.ipynb` (W3 asks jupytext `.py`); 33 public functions/classes without docstring (mostly `src/data/quality.py`, `src/models/kumo.py`) |
+| Fairness write-up | numbers at 20% in deck slide 10 (race missing 15% recall, 60+ ≈35% vs 40%); write-up in the report |
+| LLM component T5 (W11) | **out of scope (D25, 18 Nov)**: one sentence in report and deck (done in deck A10). Don't build it without a new decision |
+| Tuning HGB; own HF model repo | optional |
+| Rehearsals and Q&A bank | W13–14 |
+
+---|---|
+| Capacity | 20% (D24, aceite); the app uses 30% (D26, `Proposta`) |
+| `max_glu_serum` (D18) | **closed**: stays |
+| Targets of D20 | `Proposta` — **must be closed before opening the test**; T0.6 stays open until then |
 | Final test evaluation T3.6 (once) + test numbers in model card and report (conclusions, Abstract at 20%) | to do — critical |
 | Deck PDF (≤ 30 slides, every name + number, Space link) | to do — critical |
 | Code freeze `v1.0` tag + Moodle ZIP (`EDSB26_G11.csv` complete) | W12 (23–27 Nov) — critical |

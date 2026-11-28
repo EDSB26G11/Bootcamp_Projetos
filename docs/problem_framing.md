@@ -34,7 +34,7 @@ posição, não o risco.
 | **Quem pode entrar na lista** | Só quem volta para a comunidade sem acompanhamento (D21). Saem as altas em que o doente continua internado, vai para outro hospital ou instituição (cuidados continuados, reabilitação, longa duração, psiquiatria) ou já sai com apoio domiciliário ou cuidados paliativos. Sem esta regra, 59% da lista a 10% iria para estes doentes. O modelo estima o risco de todos; a lista só ordena os elegíveis (52 436 das 80 041 altas de treino, 65,5%). |
 | **Ação** | Dar follow-up (telefone, consulta precoce, revisão da medicação) às altas com maior risco de readmissão em menos de 30 dias, até esgotar a capacidade. |
 | **Baseline atual** | Não há um modelo em uso. A comparação justa é com uma regra simples que um hospital já podia aplicar: ordenar as altas pelo número de internamentos no ano anterior (`number_inpatient`). A ordem ao acaso é o mínimo. |
-| **Restrição** | Capacidade: a equipa só consegue dar follow-up a uma fração das altas elegíveis. Trabalhamos com **10% e 20%**; a escolha final é da equipa de negócio (decisão em aberto no roadmap). |
+| **Restrição** | Capacidade: a equipa só consegue dar follow-up a uma fração das altas elegíveis. A equipa fixou **20%** (D24), com 10% como análise de sensibilidade; a app usa 30% (D26, por decidir). |
 | **Custo de errar** | Falso negativo: uma readmissão que não recebeu follow-up. Falso positivo: um follow-up gasto num doente que não seria readmitido. Não temos custos reais, por isso não se inventa uma análise custo-benefício: a capacidade fixa quantos follow-ups há, e o modelo decide a quem. |
 
 ## 2. Limites (a repetir no relatório, no deck e na app)
@@ -69,7 +69,7 @@ confirma uma vez, no teste, na avaliação final (T3.6).
 
 ### Porque mudou o critério operacional
 
-A versão do roadmap falava em "doentes sinalizados por dia". O dataset não tem
+A primeira versão dos critérios falava em "doentes sinalizados por dia". O dataset não tem
 datas, por isso não é possível medir por dia. A capacidade passa a ser uma
 fração das altas; para traduzir em follow-ups por dia, basta multiplicar pelo
 número de altas diárias de cada hospital, que é um dado da operação e não

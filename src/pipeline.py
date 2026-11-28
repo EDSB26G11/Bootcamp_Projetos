@@ -71,7 +71,7 @@ def build_preprocessor(exclude=(), extra_binary=()) -> ColumnTransformer:
     """Numéricas escaladas, contagens com log1p, categóricas em one-hot.
 
     Serve para modelos lineares e de árvores (a escala não muda as árvores).
-    `exclude` e `extra_binary` só servem para ablações (F2·2): retirar colunas
+    `exclude` e `extra_binary` só servem para ablações (D18): retirar colunas
     ou acrescentar indicadores 0/1 que não estão em FEATURES.
     """
     keep = lambda cols: [c for c in cols if c not in exclude]

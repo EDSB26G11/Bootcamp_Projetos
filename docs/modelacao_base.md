@@ -6,7 +6,7 @@
 > atuais estão em `reports/experiments.csv`; a tabela "Números de referência"
 > abaixo foi atualizada. Critérios de sucesso em [problem_framing.md](problem_framing.md).
 
-Ponto de partida para a fase 2 do roadmap (T2.1–T2.4): o que já está pronto,
+Ponto de partida para a fase 2 (modelação, T2.1–T2.4): o que já está pronto,
 o que esta fase tem de entregar, as regras a respeitar e os números de
 referência. As decisões que levaram até aqui estão em
 [decisions.md](decisions.md) (D1–D16).
@@ -74,7 +74,7 @@ mesma forma, e a escolha justificada do candidato a modelo v1.
    folds não é uma diferença.
 6. **Features novas respeitam D12.** Nenhuma agregação por doente sobre o
    dataset e nenhuma ordem a partir do `encounter_id`. Se surgir uma ideia de
-   feature, vai ao roadmap como decisão.
+   feature, vai à equipa como decisão (decisions.md).
 7. **Seed 42** em tudo o que é aleatório.
 
 ## Números de referência
@@ -119,13 +119,13 @@ notas). Isto tem de aparecer no relatório e no deck.
 
 ## Decisões desta fase (estado a 6/11)
 
-1. Qual o gradient boosting: **HistGradientBoosting** (F2·1, D17).
+1. Qual o gradient boosting: **HistGradientBoosting** (D17).
 2. `payer_code`, `max_glu_serum` e o indicador de registo incompleto:
    ablação feita; `payer_code` fica, o indicador não entra,
-   `max_glu_serum` por confirmar (F2·2, D18).
-3. Pré-processamento do gradient boosting: o comum de D16 (F2·3).
-4. Hugging Face Hub: só para publicar (F2·4 fechada a 8/11, D23): o Kumo Tabular fica como
+   `max_glu_serum` fica (D18, decidido a 14/11).
+3. Pré-processamento do gradient boosting: o comum de D16.
+4. Hugging Face Hub: só para publicar (D23, decidido a 8/11): o Kumo Tabular fica como
    desafiante e empata com o v1 ([anexo_kumo_tabular.md](anexo_kumo_tabular.md)). O Space
    `murtaza65/diabetes-readmission-prediction-live` foi analisado e não serve
    (sem licença, treinado com os nossos doentes de teste, fuga por doente).
-5. Candidato a modelo v1: HistGradientBoosting (F2·5 fechada no roadmap a 10/11, D17).
+5. Candidato a modelo v1: HistGradientBoosting (D17, decidido a 10/11).

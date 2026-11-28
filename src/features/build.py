@@ -122,7 +122,7 @@ def model_frame(df: pd.DataFrame) -> pd.DataFrame:
     return x
 
 
-# --- Ablação F2·2: indicador de registo de admissão incompleto (D5) ----------
+# --- Ablação (D18): indicador de registo de admissão incompleto (D5) ----------
 
 ID_DESC_COLS = ["admission_type_id_desc", "discharge_disposition_id_desc", "admission_source_id_desc"]
 
